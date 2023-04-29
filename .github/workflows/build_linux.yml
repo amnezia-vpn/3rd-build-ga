@@ -10,14 +10,14 @@ jobs:
 
     strategy:
       matrix:
-        arch: [x86, x86_64, arm32, arm64]
+        arch: [x86, x86_64, arm64]
 
     steps:
 
     - name: Set up build environment
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+        packages: gcc-aarch64-linux-gnu
 
     - name: 'Get sources'
       uses: actions/checkout@v3
@@ -38,7 +38,6 @@ jobs:
         case "${{ matrix.arch }}" in
           x86) ./config -m32 ;;
           x86_64) ./config ;;
-          arm32) ./config -march=armv7-a --cross-compile-prefix=arm-linux-gnueabihf- ;;
           arm64) ./config -march=armv8-a --cross-compile-prefix=aarch64-linux-gnu- ;;
         esac
         make
