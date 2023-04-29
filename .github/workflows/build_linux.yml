@@ -9,16 +9,16 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-        matrix:
-          arch: [x86, x86_64, arm32, arm64]
+      matrix:
+        arch: [x86, x86_64, arm32, arm64]
+
+    steps:
 
     - name: Set up build environment
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
         packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
 
-
-    steps:
     - name: 'Get sources'
       uses: actions/checkout@v3
       with:
