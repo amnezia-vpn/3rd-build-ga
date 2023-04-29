@@ -1,0 +1,36 @@
+name: '3rd-prebuild workflow'
+
+
+on: [push]
+
+jobs:
+  Build-Libs-Linux-Ubuntu:
+    name: 'Build-Libs-Linux-Ubuntu'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+
+    - name: 'Get openssl'
+      uses: actions/checkout@v3
+      with:
+        repository: openssl/openssl
+        ref: OpenSSL_1_1_1t
+        path: openssl
+
+    - name: 'Build openssl'
+      run: |
+        cd openssl
+        ./config
+        make
+
+    - name: Run tests
+      run: |
+        cd openssl
+        make test
+
+
