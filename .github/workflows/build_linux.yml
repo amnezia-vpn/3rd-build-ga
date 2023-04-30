@@ -18,7 +18,7 @@ jobs:
     - name: Set up build environment
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-multilib g++-multilib
 
     - name: 'Get sources'
       uses: actions/checkout@v3
@@ -37,10 +37,10 @@ jobs:
       run: |
         cd openssl
         case "${{ matrix.arch }}" in
-          x86) ./config -m32 ;;
-          x86_64) ./config ;;
-          arm32) ./config -march=armv7-a --cross-compile-prefix=arm-linux-gnueabihf- ;;
-          arm64) ./config -march=armv8-a --cross-compile-prefix=aarch64-linux-gnu- ;;
+          x86) ./config linux-x32 ;;
+          x86_64) ./config linux-x86_64 ;;
+          arm32) ./config linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- ;;
+          arm64) ./config linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- ;;
         esac
         make
 
