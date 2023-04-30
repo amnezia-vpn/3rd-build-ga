@@ -19,6 +19,7 @@ jobs:
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
         packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-multilib g++-multilib
+        version: 1.0
 
     - name: 'Get sources'
       uses: actions/checkout@v3
