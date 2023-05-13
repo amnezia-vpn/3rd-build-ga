@@ -1,0 +1,36 @@
+name: build
+
+on: [push]
+    
+
+jobs:
+      
+  Build-Libs-WireGuard-Windows:
+    name: 'Build-Libs-WireGuard-Windows'
+    runs-on: windows-latest
+
+    steps:
+     
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+
+    - name: 'Get Wireguard'
+      uses: actions/checkout@v3
+      with:
+        repository: WireGuard/wireguard-windows
+        ref: master
+        path: windows/wireguard-windows
+
+    - name: 'Build WireGuard binary'
+      working-directory: windows/wireguard-windows
+      run: |
+        cmd /c build.bat
+        cmd /c embeddable-dll-service\build.bat
+
+
