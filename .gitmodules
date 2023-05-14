@@ -1,0 +1,3 @@
+[submodule "windows/openvpn"]
+	path = windows/openvpn
+	url = https://github.com/OpenVPN/openvpn
