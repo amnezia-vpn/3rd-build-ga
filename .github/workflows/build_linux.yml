@@ -17,9 +17,17 @@ jobs:
 
     - name: Set up build environment
       uses: awalsh128/cache-apt-pkgs-action@latest
+      if: matrix.arch != 'arm32' && matrix.arch != 'arm64'  
       with:
-        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-multilib g++-multilib
+        packages: gcc-multilib g++-multilib
         version: 1.0
+        
+    - name: Set up build environment
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      if: matrix.arch != 'x86' && matrix.arch != 'x86_64'  
+      with:
+        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+        version: 1.0    
 
     - name: 'Get sources'
       uses: actions/checkout@v3
@@ -38,10 +46,10 @@ jobs:
       run: |
         cd openssl
         case "${{ matrix.arch }}" in
-          x86) ./config linux-x32 ;;
-          x86_64) ./config linux-x86_64 ;;
-          arm32) ./config linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- ;;
-          arm64) ./config linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- ;;
+          x86) ./Configure no-tests linux-x86 shared;;
+          x86_64) ./Configure no-tests linux-x86_64 shared ;;
+          arm32) ./Configure no-tests linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- shared ;;
+          arm64) ./Configure no-tests linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- shared ;;
         esac
         make
 
