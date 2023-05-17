@@ -1,0 +1,60 @@
+name: '3rd-prebuild workflow'
+
+
+on: [push]
+
+jobs:
+  Build-Libs-OpenSSL-Win:
+    name: 'Build-OpenSSL-Lib-Windows'
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        arch: [x86, x86_64]
+      fail-fast: false
+    
+    steps:
+      - name: 'Get openssl'
+        uses: actions/checkout@v3
+        with:
+          repository: openssl/openssl
+          ref: OpenSSL_1_1_1t
+          path: openssl
+      
+      - name: Setup msbuild environment    
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_x86
+      - uses: ilammy/setup-nasm@v1.2.1
+        name: Install NASM
+      - uses: shogo82148/actions-setup-perl@v1
+        name: Install PERL
+        with:
+          distribution: strawberry
+      - name: Build OpenSSL x86
+        if: matrix.arch == 'x86'
+        run: |
+          cd openssl
+
+          perl Configure no-tests shared VC-WIN32
+          nmake
+          mkdir out32
+          move libcrypto.lib out32
+          move libcrypto.dll out32
+          move libssl.lib out32
+          move libssl.dll out32 
+      - name: Build OpenSSL x86_64
+        if: matrix.arch == 'x86_64'
+        run: |
+          cd openssl
+
+          perl Configure no-tests shared VC-WIN64A
+          nmake
+          mkdir out64
+          move libcrypto.lib out64
+          move libssl.lib out64
+          move libcrypto.dll out64
+          move libssl.dll out64
+
+ 
+
