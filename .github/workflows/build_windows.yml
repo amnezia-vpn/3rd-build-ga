@@ -9,7 +9,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        osslver: [1.1.1q, 3.0.5]
         target: [mingw64, mingw]
         include:
           - target: mingw64
@@ -17,36 +16,42 @@ jobs:
           - target: mingw
             chost: i686-w64-mingw32
 
-    name: "gcc-mingw - ${{matrix.target}} - OSSL ${{ matrix.osslver }}"
+    name: "gcc-mingw - ${{matrix.target}} - OSSL 1.1.1t"
     runs-on: ubuntu-22.04
     env:
       MAKEFLAGS: -j3
       LZO_VERSION: "2.10"
       PKCS11_HELPER_VERSION: "1.29.0"
-      OPENSSL_VERSION: "${{ matrix.osslver }}"
+      OPENSSL_VERSION: "1.1.1t"
       TAP_WINDOWS_VERSION: "9.23.3"
       CMOCKA_VERSION: "1.1.5"
     steps:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y mingw-w64 libtool automake autoconf man2html unzip cmake ninja-build build-essential wget
-      - name: Checkout OpenVPN
+
+      - name: 'Get sources'
         uses: actions/checkout@v3
         with:
+          submodules: 'true'
+          fetch-depth: 10
+
+      - name: 'Get openvpn'
+        uses: actions/checkout@v3
+        with:
+          repository: OpenVPN/openvpn
+          ref: release/2.6
           path: windows/openvpn
 
       - name: autoconf
+        run: autoreconf -fvi
         working-directory: windows/openvpn
-        run: |
-          cd windows/openvpn
-          git submodule update --init --recursive
-          autoreconf -fvi
 
       - name: Cache dependencies
         id: cache
         uses: actions/cache@v3
         with:
           path: '~/mingw/'
-          key: ${{ matrix.target }}-mingw-${{ matrix.osslver }}-${{ env.LZO_VERSION }}-${{ env.PKCS11_HELPER_VERSION }}-${{ env.TAP_WINDOWS_VERSION }}--${{ env.CMOCKA_VERSION }}
+          key: ${{ matrix.target }}-mingw-${{ env.OPENSSL_VERSION }}-${{ env.LZO_VERSION }}-${{ env.PKCS11_HELPER_VERSION }}-${{ env.TAP_WINDOWS_VERSION }}--${{ env.CMOCKA_VERSION }}
 
       # Repeating  if: steps.cache.outputs.cache-hit != 'true'
       # on every step for building dependencies is ugly but
@@ -143,21 +148,15 @@ jobs:
         run: cp ./tap-windows-${TAP_WINDOWS_VERSION}/include/tap-windows.h ${HOME}/mingw/opt/include/
 
       - name: configure OpenVPN
-        run: |
-          cd windows/openvpn
-          PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig LDFLAGS=-L$HOME/mingw/opt/lib CFLAGS=-I$HOME/mingw/opt/include OPENSSL_LIBS="-L${HOME}/opt/lib -L$HOME/mingw/opt/lib64 -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PREFIX=$HOME/mingw/opt LZO_CFLAGS=-I$HOME/mingw/opt/include LZO_LIBS="-L${HOME}/mingw/opt/lib -llzo2" ./configure  --host=${{ matrix.chost }} --disable-lz4  
+        run: PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig LDFLAGS=-L$HOME/mingw/opt/lib CFLAGS=-I$HOME/mingw/opt/include OPENSSL_LIBS="-L${HOME}/opt/lib -L$HOME/mingw/opt/lib64 -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PREFIX=$HOME/mingw/opt LZO_CFLAGS=-I$HOME/mingw/opt/include LZO_LIBS="-L${HOME}/mingw/opt/lib -llzo2" ./configure  --host=${{ matrix.chost }} --disable-lz4  
         working-directory: windows/openvpn
       
       - name: build OpenVPN
-        run: |
-          cd windows/openvpn 
-          make -j3
+        run: make -j3
         working-directory: windows/openvpn
         
       - name: build OpenVPN unittests
-        run: |
-          cd windows/openvpn 
-          make -j3 check
+        run: make -j3 check
         working-directory: windows/openvpn
 
       # We use multiple upload-artifact here, so it becomes a flat folder
@@ -166,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-dlls
+          name: mingw-unittest-${{matrix.target}}-ossl${{ env.OPENSSL_VERSION }}-dlls
           path: '~/mingw/opt/bin/*.dll'
 
       # libtool puts some wrapper binaries in openvpn/tests/unit_tests/openvpn/
@@ -175,7 +174,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-tests
+          name: mingw-unittest-${{matrix.target}}-ossl${{ env.OPENSSL_VERSION }}-tests
           path: windows/openvpn/tests/unit_tests/openvpn/.libs/*.exe
 
       # Currently not used by the unit test but might in the future and also
@@ -185,7 +184,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-tests
+          name: mingw-unittest-${{matrix.target}}-ossl${{ env.OPENSSL_VERSION }}-tests
           path: windows/openvpn/src/openvpn/.libs/*.exe
 
 
