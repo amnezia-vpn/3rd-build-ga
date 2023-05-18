@@ -25,6 +25,13 @@ jobs:
         submodules: 'true'
         fetch-depth: 10
 
+    - name: 'Get Cloak'
+      uses: actions/checkout@v3
+      with:
+        repository: amnezia-vpn/Cloak
+        ref: master-amnezia
+        path: windows/Cloak
+
     - name: 'Build Cloak binary'
       working-directory: windows/Cloak
       run: |
