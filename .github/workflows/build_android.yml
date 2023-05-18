@@ -1,0 +1,58 @@
+name: '3rd-prebuild workflow'
+
+
+on: [push]
+
+jobs:
+  Build-Libs-OpenSSL-Android:
+    name: 'Build-OpenSSL-Lib-Android'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        arch: [x86, x86_64, armeabi-v7a, arm64-v8a]
+      fail-fast: false
+
+    steps:
+    - name: 'Get openssl'
+      uses: actions/checkout@v3
+      with:
+        repository: openssl/openssl
+        ref: OpenSSL_1_1_1t
+        path: openssl
+
+    - name: 'Build OpenSSL Android'
+      run: |
+        cd openssl
+        case "${{ matrix.arch }}" in
+          arm64-v8a) 
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            mkdir arm64-v8a
+            cp libcrypto.so ./arm64-v8a/libcrypto.so
+            cp libcrypto.so ./arm64-v8a/libcrypto.so
+            ;;
+          armeabi-v7a) 
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            mkdir armeabi-v7a
+            cp libcrypto.so ./armeabi-v7a/libcrypto.so
+            cp libcrypto.so ./armeabi-v7a/libcrypto.so
+            ;;
+          x86_64) 
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86_64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            mkdir x86_64
+            cp libcrypto.so ./x86_64/libcrypto.so
+            cp libcrypto.so ./x86_64/libcrypto.so
+            ;;
+          x86)
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            mkdir x86
+            cp libcrypto.so ./x86/libcrypto.so
+            cp libcrypto.so ./x86/libcrypto.so
+            ;;
+        esac  
+          
+        
+
+
+ 
+
