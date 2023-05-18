@@ -1,3 +1,0 @@
-[submodule "linux/shadowsocks-libev"]
-	path = linux/shadowsocks-libev
-	url = https://github.com/shadowsocks/shadowsocks-libev
