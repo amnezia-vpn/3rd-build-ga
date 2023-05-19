@@ -1,0 +1,3 @@
+[submodule "windows/wireguard-windows"]
+	path = windows/wireguard-windows
+	url = https://github.com/WireGuard/wireguard-windows
