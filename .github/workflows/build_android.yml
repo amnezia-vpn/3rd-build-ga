@@ -1,0 +1,115 @@
+name: build
+
+on: [push]
+    
+
+jobs:
+  Build-Libs-ShadowSocks-Android:
+    name: 'Build-Libs-ShadowSocks-Android'
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: 'Setup Java'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: 'Setup Android'
+      run: |
+        export NDK_VERSION=23c
+        export ANDROID_NDK_PLATFORM=android-23
+        export ANDROID_NDK_HOME=${{ runner.temp }}/android-ndk-r${NDK_VERSION}
+        export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+        export ANDROID_CURRENT_ARCH=${{ matrix.arch }}
+
+        if [ ! -f $ANDROID_NDK_ROOT/ndk-build ]; then
+          wget https://dl.google.com/android/repository/android-ndk-r${NDK_VERSION}-linux.zip -qO ${{ runner.temp }}/ndk.zip &&
+          unzip -q -d ${{ runner.temp }} ${{ runner.temp }}/ndk.zip ;
+        fi
+
+    - name: 'Setup rust'
+      run: |
+       export RUST_VERSION=1.67.0
+       curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $RUST_VERSION -y
+       export PATH=$HOME/.cargo/bin:$PATH
+       rustup target add armv7-linux-androideabi aarch64-linux-android i686-linux-android x86_64-linux-android
+
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+        
+    - name: 'Get ShadowSocks'
+      uses: actions/checkout@v3
+      with:
+        repository: shadowsocks/shadowsocks-android
+        ref: master
+        path: android/shadowsocks-android   
+
+    - name: 'Build ShadowSocks binary'
+      working-directory: android/shadowsocks-android
+      run: |
+        git submodule update --init --recursive
+        ./gradlew assembleRelease
+
+# ------------------------------------------------------
+       
+  Build-Libs-Wireguard-Android:
+    name: 'Build-Libs-Wireguard-Android'
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: 'Setup Java'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 'Setup Android'
+      run: |
+        export NDK_VERSION=23c
+        export ANDROID_NDK_PLATFORM=android-23
+        export ANDROID_NDK_HOME=${{ runner.temp }}/android-ndk-r${NDK_VERSION}
+        export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+        export ANDROID_CURRENT_ARCH=${{ matrix.arch }}
+
+        if [ ! -f $ANDROID_NDK_ROOT/ndk-build ]; then
+          wget https://dl.google.com/android/repository/android-ndk-r${NDK_VERSION}-linux.zip -qO ${{ runner.temp }}/ndk.zip &&
+          unzip -q -d ${{ runner.temp }} ${{ runner.temp }}/ndk.zip ;
+        fi
+
+    - name: 'Install GO'
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.20.3
+
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+        
+    - name: 'Get Wireguard'
+      uses: actions/checkout@v3
+      with:
+        repository: WireGuard/wireguard-android
+        ref: master
+        path: android/wireguard-android       
+
+    - name: 'Build Wireguard binary'
+      working-directory: android/wireguard-android
+      run: |
+        git submodule update --init --recursive
+        ./gradlew assembleRelease        
+                
+
