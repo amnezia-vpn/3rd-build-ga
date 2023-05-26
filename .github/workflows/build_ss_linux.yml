@@ -1,0 +1,60 @@
+name: '3rd-prebuild workflow'
+
+
+on: [push]
+        
+  Build-ShadowSocks-Linux:
+    name: 'Build-Libs-Linux-Ubuntu'
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Set up build environment
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libmbedtls-dev libsodium-dev pkg-config
+        version: 1.0
+
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+    
+    - name: 'Get ShadowSocks'
+      uses: actions/checkout@v3
+      with:
+        repository: shadowsocks/shadowsocks-libev
+        ref: master
+        path: linux/shadowsocks-libev
+
+    - name: Build Libsodium
+      run: |
+       export LIBSODIUM_VER=1.0.16
+       wget https://download.libsodium.org/libsodium/releases/old/libsodium-$LIBSODIUM_VER.tar.gz
+       tar xvf libsodium-$LIBSODIUM_VER.tar.gz
+       pushd libsodium-$LIBSODIUM_VER
+       ./configure --prefix=/usr && make
+       sudo make install
+       popd
+       sudo ldconfig
+       
+    - name: Build MbedTLS
+      run: |
+       export MBEDTLS_VER=2.6.0
+       wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-$MBEDTLS_VER.tar.gz
+       tar xvf mbedtls-$MBEDTLS_VER.tar.gz
+       pushd mbedtls-mbedtls-$MBEDTLS_VER
+       make SHARED=1 CFLAGS="-O2 -fPIC"
+       sudo make DESTDIR=/usr install
+       popd
+       sudo ldconfig
+
+    - name: Build ShadowSocks
+      working-directory: linux/shadowsocks-libev
+      run: |
+       git submodule update --init --recursive
+       ./autogen.sh && ./configure --disable-documentation && make
+
+
+
