@@ -55,6 +55,7 @@ jobs:
       working-directory: android/wireguard-android
       run: |
         git submodule update --init --recursive
+        echo "y" | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0-rc3"
         ./gradlew assembleRelease        
                 
 
