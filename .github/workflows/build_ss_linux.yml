@@ -2,48 +2,6 @@ name: '3rd-prebuild workflow'
 
 
 on: [push]
-
-jobs:
-  Build-Libs-Linux-Ubuntu:
-    name: 'Build-Libs-Linux-Ubuntu'
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        arch: [x86, x86_64, arm32, arm64]
-      fail-fast: false
-
-    steps:
-
-    - name: Set up build environment
-      uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-multilib g++-multilib
-        version: 1.0
-
-    - name: 'Get sources'
-      uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-        fetch-depth: 10
-
-    - name: 'Get openssl'
-      uses: actions/checkout@v3
-      with:
-        repository: openssl/openssl
-        ref: OpenSSL_1_1_1t
-        path: openssl
-
-    - name: Build OpenSSL
-      run: |
-        cd openssl
-        case "${{ matrix.arch }}" in
-          x86) ./config linux-x32 ;;
-          x86_64) ./config linux-x86_64 ;;
-          arm32) ./config linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- ;;
-          arm64) ./config linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- ;;
-        esac
-        make
         
   Build-ShadowSocks-Linux:
     name: 'Build-Libs-Linux-Ubuntu'
