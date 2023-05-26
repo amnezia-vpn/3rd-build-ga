@@ -7,6 +7,11 @@ jobs:
   Build-Libs-Linux-Ubuntu:
     name: 'Build-Libs-Linux-Ubuntu'
     runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[linux-openssl]') ||
+      contains(github.event.head_commit.message, '[openssl]')    
 
     strategy:
       matrix:

@@ -7,7 +7,12 @@ jobs:
   Build-Libs-OpenSSL-Win:
     name: 'Build-OpenSSL-Lib-Windows'
     runs-on: windows-latest
-    
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-openssl]') ||
+      contains(github.event.head_commit.message, '[openssl]')    
+          
     strategy:
       matrix:
         arch:

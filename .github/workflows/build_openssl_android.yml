@@ -7,6 +7,11 @@ jobs:
   Build-Libs-OpenSSL-Android:
     name: 'Build-OpenSSL-Lib-Android'
     runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[android-openssl]') ||
+      contains(github.event.head_commit.message, '[openssl]')    
 
     strategy:
       matrix:
