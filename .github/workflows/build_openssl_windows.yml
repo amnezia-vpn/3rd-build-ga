@@ -69,7 +69,7 @@ jobs:
         with:
           retention-days: 1
           name: windows-openssl
-          path: '~/work/3rd-build-ga/3rd-build-ga/openssl/build'            
+          path: openssl/build            
 
  
 
