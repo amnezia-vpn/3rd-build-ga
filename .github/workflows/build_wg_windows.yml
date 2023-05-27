@@ -37,5 +37,20 @@ jobs:
       run: |
         cmd /c build.bat
         cmd /c embeddable-dll-service\build.bat
+        mkdir build
+        move embeddable-dll-service\amd64 build\amd64
+        move embeddable-dll-service\arm64 build\arm64
+        move embeddable-dll-service\x86 build\x86
+        move .deps\wireguard-nt\bin\amd64\wireguard.dll build\amd64
+        move .deps\wireguard-nt\bin\arm64\wireguard.dll build\arm64
+        move .deps\wireguard-nt\bin\x86\wireguard.dll build\x86
+    
+    - name: Archive WG Windows 
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: windows-wireguard
+        path: windows/wireguard-windows/build           
+        
 
 
