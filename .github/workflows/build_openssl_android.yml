@@ -29,33 +29,40 @@ jobs:
     - name: 'Build OpenSSL Android'
       run: |
         cd openssl
+        mkdir build
         case "${{ matrix.arch }}" in
           arm64-v8a) 
             ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
-            mkdir arm64-v8a
-            cp libcrypto.so ./arm64-v8a/libcrypto.so
-            cp libcrypto.so ./arm64-v8a/libcrypto.so
+            mkdir build/arm64-v8a
+            cp libcrypto.so ./build/arm64-v8a/libcrypto.so
+            cp libssl.so ./build/arm64-v8a/libssl.so
             ;;
           armeabi-v7a) 
             ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
-            mkdir armeabi-v7a
-            cp libcrypto.so ./armeabi-v7a/libcrypto.so
-            cp libcrypto.so ./armeabi-v7a/libcrypto.so
+            mkdir build/armeabi-v7a
+            cp libcrypto.so ./build/armeabi-v7a/libcrypto.so
+            cp libssl.so ./build/armeabi-v7a/libssl.so
             ;;
           x86_64) 
             ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86_64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
-            mkdir x86_64
-            cp libcrypto.so ./x86_64/libcrypto.so
-            cp libcrypto.so ./x86_64/libcrypto.so
+            mkdir build/x86_64
+            cp libcrypto.so ./build/x86_64/libcrypto.so
+            cp libssl.so ./build/x86_64/libssl.so
             ;;
           x86)
             ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
-            mkdir x86
-            cp libcrypto.so ./x86/libcrypto.so
-            cp libcrypto.so ./x86/libcrypto.so
+            mkdir build/x86
+            cp libcrypto.so ./build/x86/libcrypto.so
+            cp libssl.so ./build/x86/libssl.so
             ;;
         esac  
-          
+
+    - name: Archive Android OpenSSL libs
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: android-openssl
+        path: '~/work/3rd-build-ga/3rd-build-ga/openssl/build'          
         
 
 

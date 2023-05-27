@@ -2,7 +2,8 @@ name: '3rd-prebuild workflow'
 
 
 on: [push]
-        
+
+jobs:        
   Build-ShadowSocks-Linux:
     name: 'Build-Libs-Linux-Ubuntu'
     runs-on: ubuntu-latest
