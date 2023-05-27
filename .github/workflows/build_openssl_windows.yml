@@ -44,11 +44,12 @@ jobs:
 
           perl Configure no-tests shared VC-WIN32
           nmake
-          mkdir out32
-          move libcrypto.lib out32
-          move libcrypto-1_1.dll out32
-          move libssl.lib out32
-          move libssl-1_1.dll out32 
+          mkdir build
+          mkdir build/win32
+          move libcrypto.lib build/win32
+          move libcrypto-1_1.dll build/win32
+          move libssl.lib build/win32
+          move libssl-1_1.dll build/win32 
       - name: Build OpenSSL x64
         if: matrix.arch == 'amd64'
         run: |
@@ -56,11 +57,19 @@ jobs:
 
           perl Configure no-tests shared VC-WIN64A
           nmake
-          mkdir out64
-          move libcrypto.lib out64
-          move libssl.lib out64
-          move libcrypto-1_1-x64.dll out64
-          move libssl-1_1-x64.dll out64
+          mkdir build
+          mkdir build/win64
+          move libcrypto.lib build/win64
+          move libssl.lib build/win64
+          move libcrypto-1_1-x64.dll build/win64
+          move libssl-1_1-x64.dll build/win64
+      
+      - name: Archive Windows OpenSSL libs
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 1
+          name: windows-openssl
+          path: '~/work/3rd-build-ga/3rd-build-ga/openssl/build'            
 
  
 
