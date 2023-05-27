@@ -42,5 +42,35 @@ jobs:
       run: |
         export PATH=${PATH}:`go env GOPATH`/bin
         v=${GITHUB_REF#refs/*/} ./release.sh
+ 
+    - name: Archive Linux client binary
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: ck-client-linux
+        path: '~/work/3rd-build-ga/3rd-build-ga/windows/Cloak/release/ck-client-linux*'
+    
+    - name: Archive Windows client binary
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: ck-client-windows
+        path: '~/work/3rd-build-ga/3rd-build-ga/windows/Cloak/release/ck-client-windows*'
+        
+    - name: Archive Darwin client binary
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: ck-client-darwin
+        path: '~/work/3rd-build-ga/3rd-build-ga/windows/Cloak/release/ck-client-darwin*'
+   
+    - name: Archive Linux server binary
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: ck-server
+        path: '~/work/3rd-build-ga/3rd-build-ga/windows/Cloak/release/ck-server-linux*'             
+        
+            
 
 
