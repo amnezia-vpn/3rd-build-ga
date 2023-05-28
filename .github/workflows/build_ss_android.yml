@@ -63,6 +63,11 @@ jobs:
       run: |
         git submodule update --init --recursive
         ./gradlew assembleRelease
+        
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: artifacts-ss-android
+        path: android/shadowsocks-android/core/build/intermediates/stripped_native_libs/release/out/lib/*        
+        
 
-# ------------------------------------------------------
-       
