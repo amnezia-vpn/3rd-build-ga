@@ -62,5 +62,10 @@ jobs:
         git submodule update --init --recursive
         echo "y" | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0-rc3"
         ./gradlew assembleRelease        
-                
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: artifacts-wg-android
+        path: android/wireguard-android/tunnel/build/intermediates/stripped_native_libs/release/out/lib/*                  
 
