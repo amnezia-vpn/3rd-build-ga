@@ -17,7 +17,7 @@ jobs:
             - plat: x64
               triplet: x64
 
-      name: "OpenSSL msbuild - ${{matrix.triplet}} - openssl"
+      name: "OpenVPN msbuild"
       env:
         BUILD_CONFIGURATION: Release
         VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/openvpn/contrib/vcpkg-ports
