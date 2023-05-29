@@ -1,4 +1,4 @@
-name: '3rd-prebuild workflow'
+name: windows-openssl
 
 
 on: [push]

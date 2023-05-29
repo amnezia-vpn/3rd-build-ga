@@ -1,4 +1,4 @@
-name: '3rd-prebuild workflow'
+name: linux-openssl
 
 
 on: [push]

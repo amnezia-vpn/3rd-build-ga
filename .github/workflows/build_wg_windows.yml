@@ -1,4 +1,4 @@
-name: build
+name: windows-wg
 
 on: [push]
     

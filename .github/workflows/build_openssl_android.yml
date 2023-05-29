@@ -1,4 +1,4 @@
-name: '3rd-prebuild workflow'
+name: android-openssl
 
 
 on: [push]
