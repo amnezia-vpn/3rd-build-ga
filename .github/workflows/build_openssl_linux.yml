@@ -89,7 +89,7 @@ jobs:
         name: linux-openssl
         path: '~/work/3rd-build-ga/3rd-build-ga/openssl/build'            
 
-        
+
   github-release:
     name: GitHub Release
     needs: Build-Libs-Linux-Ubuntu
@@ -109,13 +109,14 @@ jobs:
       - name: Zip ALL
         run: for file in *; do zip -r ${file%.*}.zip  $file; done
 
-      - name: Publish
-        uses: marvinpinto/action-automatic-releases@latest
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: true
-          files: |
-            *.zip          
+          file: linux-openssl.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true           
         
 
 
