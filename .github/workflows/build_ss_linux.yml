@@ -81,7 +81,7 @@ jobs:
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: artifacts-ss-linux
+          name: ss-linux
           path: shadowsocks-rust/build/release/*
 
 
@@ -136,7 +136,7 @@ jobs:
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: artifacts-ss-macos
+          name: ss-macos
           path: shadowsocks-rust/build/release/*
 
 
@@ -179,9 +179,9 @@ jobs:
           path: shadowsocks-rust/build/release/*
 
           
-  github-release:
+  github-release-windows:
     name: GitHub Release
-    needs: Build-ShadowSocks-Linux
+    needs: build-windows
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
@@ -206,3 +206,60 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true  
+          
+  github-release-unix:
+    name: GitHub Release
+    needs: build-unix
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ss-macos.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true   
+
+  github-release-linux:
+    name: GitHub Release
+    needs: Build-ShadowSocks-Linux
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ss-linux.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true           
+                   
