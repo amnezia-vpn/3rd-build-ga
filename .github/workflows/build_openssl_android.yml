@@ -36,6 +36,7 @@ jobs:
             mkdir build/arm64-v8a
             cp libcrypto.so ./build/arm64-v8a/libcrypto.so
             cp libssl.so ./build/arm64-v8a/libssl.so
+            cp -a ./include/. ./build/include 
             ;;
           armeabi-v7a) 
             ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make

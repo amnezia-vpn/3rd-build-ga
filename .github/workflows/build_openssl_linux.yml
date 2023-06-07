@@ -64,7 +64,8 @@ jobs:
             ./Configure no-tests linux-x86_64 shared
             make
             cp libcrypto.so ./build/x86_64/libcrypto.so
-            cp libssl.so ./build/x86_64/libssl.so 
+            cp libssl.so ./build/x86_64/libssl.so
+            cp -a ./include/. ./build/include  
             ;;
           arm32)         
             mkdir build/arm32 

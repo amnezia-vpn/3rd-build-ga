@@ -63,6 +63,7 @@ jobs:
           move libssl.lib build/win64
           move libcrypto-1_1-x64.dll build/win64
           move libssl-1_1-x64.dll build/win64
+          move include build/include
       
       - name: Archive Windows OpenSSL libs
         uses: actions/upload-artifact@v3
