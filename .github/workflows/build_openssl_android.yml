@@ -32,29 +32,29 @@ jobs:
         mkdir build
         case "${{ matrix.arch }}" in
           arm64-v8a) 
-            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm64 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
             mkdir build/arm64-v8a
-            cp libcrypto.so ./build/arm64-v8a/libcrypto.so
-            cp libssl.so ./build/arm64-v8a/libssl.so
+            cp libcrypto.a ./build/arm64-v8a/libcrypto.a
+            cp libssl.a ./build/arm64-v8a/libssl.a
             cp -a ./include/. ./build/include 
             ;;
           armeabi-v7a) 
-            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
             mkdir build/armeabi-v7a
-            cp libcrypto.so ./build/armeabi-v7a/libcrypto.so
-            cp libssl.so ./build/armeabi-v7a/libssl.so
+            cp libcrypto.a ./build/armeabi-v7a/libcrypto.a
+            cp libssl.a ./build/armeabi-v7a/libssl.a
             ;;
           x86_64) 
-            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86_64 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86_64 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
             mkdir build/x86_64
-            cp libcrypto.so ./build/x86_64/libcrypto.so
-            cp libssl.so ./build/x86_64/libssl.so
+            cp libcrypto.a ./build/x86_64/libcrypto.a
+            cp libssl.a ./build/x86_64/libssl.a
             ;;
           x86)
-            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86 shared no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
             mkdir build/x86
-            cp libcrypto.so ./build/x86/libcrypto.so
-            cp libssl.so ./build/x86/libssl.so
+            cp libcrypto.a ./build/x86/libcrypto.a
+            cp libssl.a ./build/x86/libssl.a
             ;;
         esac  
 
@@ -80,7 +80,7 @@ jobs:
         uses: actions/download-artifact@v2
 
       - name: Setup | Checksums
-        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+        run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
       - name: Zip ALL
         run: for file in *; do zip -r ${file%.*}.zip  $file; done

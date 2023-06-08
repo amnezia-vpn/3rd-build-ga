@@ -54,32 +54,32 @@ jobs:
         case "${{ matrix.arch }}" in
           x86)
             mkdir build/x86 
-            ./Configure no-tests linux-x86 shared
+            ./Configure no-tests linux-x86 
             make
-            cp libcrypto.so ./build/x86/libcrypto.so
-            cp libssl.so ./build/x86/libssl.so
+            cp libcrypto.a ./build/x86/libcrypto.a
+            cp libssl.a ./build/x86/libssl.a
             ;;
           x86_64)
             mkdir build/x86_64
-            ./Configure no-tests linux-x86_64 shared
+            ./Configure no-tests linux-x86_64 
             make
-            cp libcrypto.so ./build/x86_64/libcrypto.so
-            cp libssl.so ./build/x86_64/libssl.so
+            cp libcrypto.a ./build/x86_64/libcrypto.a
+            cp libssl.a ./build/x86_64/libssl.a
             cp -a ./include/. ./build/include  
             ;;
           arm32)         
             mkdir build/arm32 
-            ./Configure no-tests linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- shared
+            ./Configure no-tests linux-armv4 --cross-compile-prefix=arm-linux-gnueabihf- 
             make
-            cp libcrypto.so ./build/arm32/libcrypto.so
-            cp libssl.so ./build/arm32/libssl.so 
+            cp libcrypto.a ./build/arm32/libcrypto.a
+            cp libssl.a ./build/arm32/libssl.a 
             ;;
           arm64)
             mkdir build/arm64 
-            ./Configure no-tests linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- shared
+            ./Configure no-tests linux-aarch64 --cross-compile-prefix=aarch64-linux-gnu- 
             make
-            cp libcrypto.so ./build/arm64/libcrypto.so
-            cp libssl.so ./build/arm64/libssl.so
+            cp libcrypto.a ./build/arm64/libcrypto.a
+            cp libssl.a ./build/arm64/libssl.a
             ;;
         esac
 
@@ -105,7 +105,7 @@ jobs:
         uses: actions/download-artifact@v2
 
       - name: Setup | Checksums
-        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+        run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
       - name: Zip ALL
         run: for file in *; do zip -r ${file%.*}.zip  $file; done

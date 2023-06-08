@@ -42,27 +42,23 @@ jobs:
         run: |
           cd openssl
 
-          perl Configure no-tests shared VC-WIN32
+          perl Configure no-tests no-shared VC-WIN32
           nmake
           mkdir build
           mkdir build/win32
           move libcrypto.lib build/win32
-          move libcrypto-1_1.dll build/win32
           move libssl.lib build/win32
-          move libssl-1_1.dll build/win32 
       - name: Build OpenSSL x64
         if: matrix.arch == 'amd64'
         run: |
           cd openssl
 
-          perl Configure no-tests shared VC-WIN64A
+          perl Configure no-tests no-shared VC-WIN64A
           nmake
           mkdir build
           mkdir build/win64
           move libcrypto.lib build/win64
           move libssl.lib build/win64
-          move libcrypto-1_1-x64.dll build/win64
-          move libssl-1_1-x64.dll build/win64
           move include build/include
       
       - name: Archive Windows OpenSSL libs
