@@ -1,0 +1,118 @@
+name: android-openvpn
+
+on: [push]
+    
+
+jobs:
+  Build-OpenVPN-Android:
+    name: 'Build-OpenVPN-Android'
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[android-openvpn]') ||
+      contains(github.event.head_commit.message, '[openvpn]')
+
+
+    strategy:
+      matrix:
+        arch: [arm64-v8a, armeabi-v7a, x86, x86_64]
+      fail-fast: false
+
+    steps:
+    
+    - name: 'Setup Java'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+
+    - name: 'Install GO'
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.20.3
+
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+        
+    - name: 'Get AmneziaVPN'
+      uses: actions/checkout@v3
+      with:
+        repository: amnezia-vpn/amnezia-client
+        ref: dev
+        path: amnezia-client       
+
+    - name: 'Build Android OpenVPN binary'
+      run: |
+        cd amnezia-client
+        git submodule update --init --recursive
+        cd client/android
+        case "${{ matrix.arch }}" in
+          arm64-v8a)
+            export ANDROID_ARCH=arm64-v8a
+            cmake -H$(pwd)/cpp -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=$ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_BUILD_TYPE=RelWithDebInfo -B$(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH -GNinja -DANDROID_PACKAGE_NAME=org.amnezia.vpn -DANDROID_PLATFORM=24
+            $ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -C $(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH libovpnexec.so openvpn osslspeedtest ovpn3 ovpnutil rsapss
+            cp .cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH/libck-ovpn-plugin.so $(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH/libck-ovpn-plugin.so
+            ;;
+          armeabi-v7a)
+            export ANDROID_ARCH=armeabi-v7a
+            cmake -H$(pwd)/cpp -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=$ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_BUILD_TYPE=RelWithDebInfo -B$(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH -GNinja -DANDROID_PACKAGE_NAME=org.amnezia.vpn -DANDROID_PLATFORM=24
+            $ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -C $(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH libovpnexec.so openvpn osslspeedtest ovpn3 ovpnutil rsapss
+            cp .cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH/libck-ovpn-plugin.so $(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH/libck-ovpn-plugin.so
+            ;;
+          x86)         
+            export ANDROID_ARCH=x86
+            cmake -H$(pwd)/cpp -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=$ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_BUILD_TYPE=RelWithDebInfo -B$(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH -GNinja -DANDROID_PACKAGE_NAME=org.amnezia.vpn -DANDROID_PLATFORM=24
+            $ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -C $(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH libovpnexec.so openvpn osslspeedtest ovpn3 ovpnutil rsapss
+            cp .cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH/libck-ovpn-plugin.so $(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH/libck-ovpn-plugin.so
+            ;;
+          x86_64)
+            export ANDROID_ARCH=x86_64
+            cmake -H$(pwd)/cpp -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=$ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH -DCMAKE_BUILD_TYPE=RelWithDebInfo -B$(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH -GNinja -DANDROID_PACKAGE_NAME=org.amnezia.vpn -DANDROID_PLATFORM=24
+            $ANDROID_SDK_ROOT/cmake/3.22.1/bin/ninja -C $(pwd)/.cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH libovpnexec.so openvpn osslspeedtest ovpn3 ovpnutil rsapss
+            cp .cxx/RelWithDebInfo/13n3u395/$ANDROID_ARCH/libck-ovpn-plugin.so $(pwd)/build/intermediates/cxx/RelWithDebInfo/13n3u395/obj/$ANDROID_ARCH/libck-ovpn-plugin.so       
+            ;;
+        esac
+       
+    - name: Archive Android OpenVPN libs
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: android-openvpn
+        path: '~/work/3rd-build-ga/3rd-build-ga/amnezia-client/client/android/build'                
+
+
+  github-release:
+    name: GitHub Release
+    needs: Build-OpenVPN-Android
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: android-openvpn.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true         
