@@ -54,6 +54,9 @@ jobs:
         cd amnezia-client
         git submodule update --init --recursive
         cd client/android
+        cd cpp/openvpn3
+        git pull origin master-amnezia
+        cd ../..
         case "${{ matrix.arch }}" in
           arm64-v8a)
             export ANDROID_ARCH=arm64-v8a
