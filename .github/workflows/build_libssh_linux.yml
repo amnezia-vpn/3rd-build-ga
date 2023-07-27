@@ -1,0 +1,88 @@
+name: libssh-linux
+
+on: [push]
+
+env:
+  # Expected filename: https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+  ZLIB_VERSION: 1.2.13
+  # Expected filename: https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+  OPENSSL_VERSION: 1.1.1t
+  # Exoected filename: ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz
+  LIBSSH_SOURCE: https://www.libssh.org/files/0.10/
+  LIBSSH_VERSION: 0.10.3
+
+jobs:
+  Build-LibSSH-Linux:
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[linux-libssh]') ||
+      contains(github.event.head_commit.message, '[libssh]')    
+    strategy:
+      matrix:
+        arch: [x86_64]
+        # no-crypto=yes: builds version with all crypto disabled
+        # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
+        no_crypto:
+          - no
+        #  - yes
+
+    steps:
+
+    - name: Set up build environment
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      if: matrix.arch != 'arm32' && matrix.arch != 'arm64'  
+      with:
+        packages: gcc-multilib g++-multilib
+        version: 1.0
+        
+    - name: Set up build environment
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      if: matrix.arch != 'x86' && matrix.arch != 'x86_64'  
+      with:
+        packages: gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+        version: 1.0    
+
+
+    - name: Get dependencies
+      run: |
+        # Get and unpack zlibx
+        curl -LOJ https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+        tar -xzf zlib-${{env.ZLIB_VERSION}}.tar.gz
+        
+        # Get and unpack openssl
+        curl -LOJ https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        tar -xzf openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        
+        # Get and unpack libssh
+        curl -LOJ ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz 
+        tar -xf libssh-${{env.LIBSSH_VERSION}}.tar.xz
+        cd libssh-${{env.LIBSSH_VERSION}}
+        mkdir build
+
+    - name: Build zlib
+      run: |
+        cd zlib-${{env.ZLIB_VERSION}}
+        cmake .
+        make zlibstatic
+
+    - name: Build openssl
+      run: |
+        cd openssl-${{env.OPENSSL_VERSION}}
+        ./Configure no-tests no-shared linux-x86_64 
+        make
+
+    - name: Build libssh
+      run: |
+        cd libssh-${{env.LIBSSH_VERSION}}/build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static" -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
+        make ssh
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: libssh-linux-${{ matrix.arch }}
+        path: ${{ github.workspace }}/libssh-${{env.LIBSSH_VERSION}}/build
+        if-no-files-found: error
+        retention-days: 7

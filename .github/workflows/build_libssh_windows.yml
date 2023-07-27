@@ -1,0 +1,147 @@
+name: libssh-windows
+
+on: [push]
+
+env:
+  # Expected filename: https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+  ZLIB_VERSION: 1.2.13
+  # Expected filename: https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+  OPENSSL_VERSION: 1.1.1t
+  # Exoected filename: ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz
+  LIBSSH_SOURCE: https://www.libssh.org/files/0.10/
+  LIBSSH_VERSION: 0.10.3
+
+jobs:
+  Build-VisualCxx:
+    runs-on: windows-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-libssh]') ||
+      contains(github.event.head_commit.message, '[libssh]')    
+    strategy:
+      matrix:
+        arch: [x86, x86_64]
+        # no-crypto=yes: builds version with all crypto disabled
+        # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
+        no_crypto:
+          - no
+        #  - yes
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Enable Developer Command Prompt
+      # You may pin to the exact commit or the version.
+      # uses: ilammy/msvc-dev-cmd@d8610e2b41c6d0f0c3b4c46dad8df0fd826c68e1
+      uses: ilammy/msvc-dev-cmd@v1.10.0
+      with:
+        arch: ${{ matrix.arch }}
+        toolset: ${{ matrix.toolset }}
+        #sdk:   # use the latest
+        #spectre: # set true to use VC libraries with sepctre mitigations
+
+      ##########################################################################
+      # Build optional dependencies (zlib, openssl, libssh)                    #
+      ##########################################################################
+    - name: Cache Optional Dependencies
+      uses: actions/cache@v3.0.5
+      id: cache-optional-dependencies
+      with:
+        path: |
+          ${{github.workspace}}\zlib 
+          ${{github.workspace}}\openssl 
+          ${{github.workspace}}\libssh 
+          ${{github.workspace}}\tools
+        key: msvc-${{ matrix.toolset }}-${{ matrix.arch }}+zlib-${{env.ZLIB_VERSION}}+openssl-${{env.OPENSSL_VERSION}}+libssh-${{env.LIBSSH_VERSION}}rel+nasm+xp
+
+    - uses: ilammy/setup-nasm@v1.2.1
+      name: Install NASM
+    - uses: shogo82148/actions-setup-perl@v1
+      name: Install PERL
+      with:
+        distribution: strawberry
+
+    - name: Get dependencies
+      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
+      run: |
+        # Get and unpack zlib
+        mkdir zlib
+        cd zlib
+        wget https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz -outfile zlib-${{env.ZLIB_VERSION}}.tar.gz
+        7z x zlib-${{env.ZLIB_VERSION}}.tar.gz
+        7z x zlib-${{env.ZLIB_VERSION}}.tar
+        ren zlib-${{env.ZLIB_VERSION}} ${{env.ZLIB_VERSION}}
+        del *.tar 
+        del *.gz
+        cd ..
+        
+        # Get and unpack openssl
+        mkdir openssl
+        cd openssl
+        wget https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz -outfile openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        7z x openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        7z x openssl-${{env.OPENSSL_VERSION}}.tar
+        ren openssl-${{env.OPENSSL_VERSION}} ${{env.OPENSSL_VERSION}}
+        del *.tar 
+        del *.gz
+        cd ..
+        
+        # Get and unpack libssh
+        mkdir libssh
+        cd libssh
+        wget ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz -outfile libssh-${{env.LIBSSH_VERSION}}.tar.xz
+        7z x libssh-${{env.LIBSSH_VERSION}}.tar.xz
+        7z x libssh-${{env.LIBSSH_VERSION}}.tar
+        ren libssh-${{env.LIBSSH_VERSION}} ${{env.LIBSSH_VERSION}}
+        del *.tar 
+        del *.xz
+        cd ${{env.LIBSSH_VERSION}}
+        mkdir build
+        cd ..
+        cd ..
+        
+      shell: powershell
+
+    - name: Build zlib
+      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
+      shell: cmd
+      run: |
+        cd zlib\${{env.ZLIB_VERSION}}
+        cmake .
+        nmake -f win32\Makefile.msc
+
+    - name: Build openssl x86
+      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true' && matrix.arch == 'x86'
+      shell: powershell
+      run: |
+        cd openssl\${{env.OPENSSL_VERSION}}
+        $env:Path += ";${{github.workspace}}\tools\nasm"
+        $env:Path
+        perl Configure VC-WIN32 no-tests no-shared --with-zlib-include=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}     
+        nmake
+
+    - name: Build openssl x64
+      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true' && matrix.arch == 'x86_64'
+      shell: powershell
+      run: |
+        cd openssl\${{env.OPENSSL_VERSION}}
+        $env:Path += ";${{github.workspace}}\tools\nasm"
+        $env:Path
+        perl Configure VC-WIN64A no-tests no-shared --with-zlib-include=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}     
+        nmake
+
+    - name: Build libssh
+      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        cd libssh\${{env.LIBSSH_VERSION}}\build
+        cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="/MT" -DCMAKE_CXX_FLAGS="/MT" -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DOPENSSL_ROOT_DIR=${{github.workspace}}\openssl\${{env.OPENSSL_VERSION}}\ -DZLIB_ROOT:PATH=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}\
+        nmake
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: libssh-win-${{ matrix.arch }}
+        path: ${{ github.workspace }}\libssh\${{env.LIBSSH_VERSION}}\build
+        if-no-files-found: error
+        retention-days: 7
