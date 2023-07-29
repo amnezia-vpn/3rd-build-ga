@@ -1,0 +1,98 @@
+name: libssh-android
+
+on: [push]
+
+env:
+  # Expected filename: https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+  ZLIB_VERSION: 1.2.13
+  # Expected filename: https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+  OPENSSL_VERSION: 1.1.1t
+  # Exoected filename: ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz
+  LIBSSH_SOURCE: https://www.libssh.org/files/0.10/
+  LIBSSH_VERSION: 0.10.3
+
+jobs:
+  Build-LibSSH-Android:
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[andrid-libssh]') ||
+      contains(github.event.head_commit.message, '[libssh]')    
+    strategy:
+      matrix:
+        arch: [x86_64, arm64-v8a, armeabi-v7a, x86]
+        # no-crypto=yes: builds version with all crypto disabled
+        # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
+        no_crypto:
+          - no
+        #  - yes
+
+
+    env:
+      ANDROID_ARCH: ${{ matrix.arch }}
+
+    steps:
+
+
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r21e
+
+
+    - name: Get dependencies
+      run: |
+        # Get and unpack zlibx
+        curl -LOJ https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+        tar -xzf zlib-${{env.ZLIB_VERSION}}.tar.gz
+        
+        # Get and unpack openssl
+        curl -LOJ https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        tar -xzf openssl-${{env.OPENSSL_VERSION}}.tar.gz
+        
+        # Get and unpack libssh
+        curl -LOJ ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz 
+        tar -xf libssh-${{env.LIBSSH_VERSION}}.tar.xz
+        cd libssh-${{env.LIBSSH_VERSION}}
+        mkdir build
+    - name: Build zlib
+      run: |
+        cd zlib-${{env.ZLIB_VERSION}}
+        cmake ./ -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake 
+        PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+        make zlibstatic
+    - name: Build openssl
+      run: |
+        cd openssl-${{env.OPENSSL_VERSION}}
+        case "${{ matrix.arch }}" in
+          arm64-v8a)
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm64 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ;;
+          armeabi-v7a)
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-arm no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ;;
+          x86_64) 
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86_64 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ;;
+          x86)
+            ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH ./Configure android-x86 no-tests -U__ANDROID_API__ -D__ANDROID_API__=21 && PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make
+            ;;
+        esac  
+    - name: Build libssh
+      run: |
+        cd libssh-${{env.LIBSSH_VERSION}}/build
+        export OPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}
+        export ZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
+        export OPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libssl.a 
+        export OPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include
+        cmake .. -DANDROID_PLATFORM=android-24 -DCMAKE_ANDROID_API_MIN=24 -DCMAKE_ANDROID_API=24 -DCMAKE_CXX_FLAGS="-D__USE_BSD=1 " -DCMAKE_C_FLAGS="-D__USE_BSD=1"  -DCMAKE_SYSTEM_NAME=Android -DWITH_SERVER=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DBUILD_SHARED_LIBS=OFF -DOPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DOPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include -DCMAKE_EXE_LINKER_FLAGS="-static"
+        PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make ssh 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: libssh-linux-${{ matrix.arch }}
+        path: ${{ github.workspace }}/libssh-${{env.LIBSSH_VERSION}}/build
+        if-no-files-found: error
+        retention-days: 7
