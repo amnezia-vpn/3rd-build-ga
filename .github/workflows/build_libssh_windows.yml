@@ -40,20 +40,6 @@ jobs:
         #sdk:   # use the latest
         #spectre: # set true to use VC libraries with sepctre mitigations
 
-      ##########################################################################
-      # Build optional dependencies (zlib, openssl, libssh)                    #
-      ##########################################################################
-    - name: Cache Optional Dependencies
-      uses: actions/cache@v3.0.5
-      id: cache-optional-dependencies
-      with:
-        path: |
-          ${{github.workspace}}\zlib 
-          ${{github.workspace}}\openssl 
-          ${{github.workspace}}\libssh 
-          ${{github.workspace}}\tools
-        key: msvc-${{ matrix.toolset }}-${{ matrix.arch }}+zlib-${{env.ZLIB_VERSION}}+openssl-${{env.OPENSSL_VERSION}}+libssh-${{env.LIBSSH_VERSION}}rel+nasm+xp
-
     - uses: ilammy/setup-nasm@v1.2.1
       name: Install NASM
     - uses: shogo82148/actions-setup-perl@v1
@@ -62,7 +48,6 @@ jobs:
         distribution: strawberry
 
     - name: Get dependencies
-      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
       run: |
         # Get and unpack zlib
         mkdir zlib
@@ -103,7 +88,6 @@ jobs:
       shell: powershell
 
     - name: Build zlib
-      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
       shell: cmd
       run: |
         cd zlib\${{env.ZLIB_VERSION}}
@@ -111,7 +95,7 @@ jobs:
         nmake -f win32\Makefile.msc
 
     - name: Build openssl x86
-      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true' && matrix.arch == 'x86'
+      if: matrix.arch == 'x86'
       shell: powershell
       run: |
         cd openssl\${{env.OPENSSL_VERSION}}
@@ -121,7 +105,7 @@ jobs:
         nmake
 
     - name: Build openssl x64
-      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true' && matrix.arch == 'x86_64'
+      if: matrix.arch == 'x86_64'
       shell: powershell
       run: |
         cd openssl\${{env.OPENSSL_VERSION}}
@@ -131,12 +115,11 @@ jobs:
         nmake
 
     - name: Build libssh
-      if: steps.cache-optional-dependencies.outputs.cache-hit != 'true'
       shell: powershell
       run: |
         cd libssh\${{env.LIBSSH_VERSION}}\build
-        cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="/MT" -DCMAKE_CXX_FLAGS="/MT" -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DOPENSSL_ROOT_DIR=${{github.workspace}}\openssl\${{env.OPENSSL_VERSION}}\ -DZLIB_ROOT:PATH=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}\
-        nmake
+        cmake .. -G "NMake Makefiles" -DWITH_SERVER=OFF -DLIBSSH_LINK_LIBRARIES=crypt32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="/MT" -DCMAKE_CXX_FLAGS="/MT" -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DOPENSSL_ROOT_DIR=${{github.workspace}}\openssl\${{env.OPENSSL_VERSION}}\ -DZLIB_ROOT:PATH=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}\
+        nmake ssh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
@@ -145,3 +128,35 @@ jobs:
         path: ${{ github.workspace }}\libssh\${{env.LIBSSH_VERSION}}\build
         if-no-files-found: error
         retention-days: 7
+
+        
+  github-release:
+    name: GitHub Release
+    needs: Build-VisualCxx
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.lib' -or -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*.zip"
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true      
+
+       
+        
