@@ -118,7 +118,7 @@ jobs:
       shell: powershell
       run: |
         cd libssh\${{env.LIBSSH_VERSION}}\build
-        cmake .. -G "NMake Makefiles" -DWITH_SERVER=OFF -DLIBSSH_LINK_LIBRARIES=crypt32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="/MT" -DCMAKE_CXX_FLAGS="/MT" -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DOPENSSL_ROOT_DIR=${{github.workspace}}\openssl\${{env.OPENSSL_VERSION}}\ -DZLIB_ROOT:PATH=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}\
+        cmake .. -G "NMake Makefiles" -DWITH_SERVER=OFF -DWITH_GSSAPI=OFF -DLIBSSH_LINK_LIBRARIES=crypt32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="/MT" -DCMAKE_CXX_FLAGS="/MT" -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DOPENSSL_ROOT_DIR=${{github.workspace}}\openssl\${{env.OPENSSL_VERSION}}\ -DZLIB_ROOT:PATH=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}\
         nmake ssh
 
     - name: Upload Artifact

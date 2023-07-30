@@ -50,6 +50,8 @@ jobs:
         cd zlib-${{env.ZLIB_VERSION}}
         cmake -G "Xcode" -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_C_COMPILER="$(xcrun -find cc)" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_C_FLAGS='-fembed-bitcode'
         cmake --build ./ --target "zlibstatic" --config ${CONFIGURATION:-Release}
+        cp ./Release-iphoneos/libz.a ${{github.workspace}}/libssh-${{env.LIBSSH_VERSION}}/build/libz.a
+        
 
     - name: Build openssl
       run: |
@@ -69,7 +71,7 @@ jobs:
     - name: Build libssh
       run: |
         cd libssh-${{env.LIBSSH_VERSION}}/build
-        cmake .. -G "Xcode" -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_C_COMPILER="$(xcrun -find cc)" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_C_FLAGS='-fembed-bitcode' -DWITH_SERVER=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DOPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DOPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include
+        cmake .. -G "Xcode" -DCMAKE_SYSTEM_NAME=iOS -DWITH_GSSAPI=OFF -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_C_COMPILER="$(xcrun -find cc)" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_C_FLAGS='-fembed-bitcode' -DWITH_SERVER=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/Release-iphoneos/libz.a -DOPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DOPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include
         cmake --build ./ --target "ssh" --config ${CONFIGURATION:-Release}
 
     - name: Upload Artifact

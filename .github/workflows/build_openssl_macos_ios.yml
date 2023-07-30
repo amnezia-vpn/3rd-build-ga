@@ -35,7 +35,7 @@ jobs:
           sed -i '' 's/openssl-3.0.9/openssl-${{matrix.ssllib}}/' openssl-build.sh
           sed -i '' 's/3.0.9/${{matrix.ssllib}}/' openssl-build-phase1.sh
           sed -i '' 's/3.0.9/${{matrix.ssllib}}/' openssl-build-phase2.sh
-          ./openssl-build.sh
+          ./openssl-build.sh -e
       
       - name: Archive artifacts
         uses: actions/upload-artifact@v3

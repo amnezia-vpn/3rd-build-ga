@@ -66,6 +66,7 @@ jobs:
         cd zlib-${{env.ZLIB_VERSION}}
         cmake .
         make zlibstatic
+        cp ./libz.a ${{github.workspace}}/libssh-${{env.LIBSSH_VERSION}}/build/libz.a
 
     - name: Build openssl
       run: |
@@ -76,7 +77,7 @@ jobs:
     - name: Build libssh
       run: |
         cd libssh-${{env.LIBSSH_VERSION}}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static" -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static" -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a 
         make ssh
 
     - name: Upload Artifact
