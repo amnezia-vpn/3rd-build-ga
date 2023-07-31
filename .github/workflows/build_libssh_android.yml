@@ -17,7 +17,7 @@ jobs:
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[android]') ||
-      contains(github.event.head_commit.message, '[andrid-libssh]') ||
+      contains(github.event.head_commit.message, '[android-libssh]') ||
       contains(github.event.head_commit.message, '[libssh]')    
     strategy:
       matrix:
@@ -89,7 +89,7 @@ jobs:
         export ZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
         export OPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libssl.a 
         export OPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include
-        cmake .. -DANDROID_PLATFORM=android-24 -DCMAKE_ANDROID_API_MIN=24 -DCMAKE_ANDROID_API=24 -DWITH_GSSAPI=OFF -DCMAKE_CXX_FLAGS="-D__USE_BSD=1 " -DCMAKE_C_FLAGS="-D__USE_BSD=1"  -DCMAKE_SYSTEM_NAME=Android -DWITH_SERVER=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DBUILD_SHARED_LIBS=OFF -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DOPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a:${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DOPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include -DCMAKE_EXE_LINKER_FLAGS="-static"
+        cmake .. -DANDROID_PLATFORM=android-28 -DCMAKE_ANDROID_API_MIN=28 -DCMAKE_ANDROID_API=28 -DWITH_GSSAPI=OFF -DCMAKE_CXX_FLAGS="-D__USE_BSD=1 " -DCMAKE_C_FLAGS="-D__USE_BSD=1"  -DCMAKE_SYSTEM_NAME=Android -DWITH_SERVER=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_ABI=$ANDROID_ARCH -DCMAKE_ANDROID_ARCH_ABI=$ANDROID_ARCH -DANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DOPENSSL_CRYPTO_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libcrypto.a -DOPENSSL_SSL_LIBRARY=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/libssl.a -DOPENSSL_INCLUDE_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}}/include -DCMAKE_EXE_LINKER_FLAGS="-static"
         PATH=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH make ssh 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
@@ -113,7 +113,7 @@ jobs:
         uses: actions/download-artifact@v2
 
       - name: Setup | Checksums
-        run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
       - name: Zip ALL
         run: for file in *; do zip -r ${file%.*}.zip  $file; done
