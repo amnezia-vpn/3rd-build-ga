@@ -1,0 +1,63 @@
+name: macos-wg
+
+on: [push]
+    
+jobs:
+
+  macos:
+        
+    runs-on: macos-11
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[macos-wg]') ||
+      contains(github.event.head_commit.message, '[wg]') 
+    
+    name: "WireGuard for MacOS"
+    steps:
+        
+      - name: 'Get WireGuard'
+        uses: actions/checkout@v3
+        with:
+          repository: WireGuard/wireguard-go
+          ref: master
+          path: wireguard-go
+
+      - name: 'Run build script'
+        working-directory: wireguard-go
+        run: make
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wg-macos
+          path: wireguard-go/wireguard-go 
+
+  github-release:
+    name: GitHub Release
+    needs: macos
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: wg-macos.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true                              
+      
