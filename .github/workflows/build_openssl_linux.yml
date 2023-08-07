@@ -6,7 +6,7 @@ on: [push]
 jobs:
   Build-Libs-Linux-Ubuntu:
     name: 'Build-Libs-Linux-Ubuntu'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[linux]') ||

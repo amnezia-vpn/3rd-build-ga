@@ -1,0 +1,149 @@
+name: linux-openvpn
+
+on: [push]
+
+jobs:
+  Build-OpenVPN-Linux:
+    name: 'Build-OpenVPN-Ubuntu'
+    runs-on: ubuntu-20.04
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[linux-openvpn]') ||
+      contains(github.event.head_commit.message, '[openvpn]')
+          
+    strategy:
+      matrix:
+        arch: [x86_64] #, x86, arm32, arm64]
+      fail-fast: false
+
+    env:
+      CFLAGS: "-static-libgcc -g -O1"
+      UBSAN_OPTIONS: print_stacktrace=1
+      BUILD_DIR: ${{ github.workspace }}/../_deps/openvpn_build
+      INSTALL_DIR: ${{ github.workspace }}/../openvpn_inst
+      OPEN_SSL_VER: "1.1.1t"
+      _ARCH: ${{matrix.arch}}
+      OPENSSL_LIBS: "-L${INSTALL_DIR}/lib -lssl -lcrypto"
+      OPENSSL_CFLAGS: "-I${INSTALL_DIR}/include"
+      LZO_LIBS: "-L${INSTALL_DIR}/lib -llzo2"
+      LZO_CFLAGS: "-I${INSTALL_DIR}/include"
+      LZ4_LIBS: "-L${INSTALL_DIR}/lib -llz4"
+      LZ4_CFLAGS: "-I${INSTALL_DIR}/include"
+    steps:
+
+
+      - name: Set up build environment
+        uses: awalsh128/cache-apt-pkgs-action@latest 
+        with:
+          packages: gcc-multilib g++-multilib libnl-genl-3-dev libcap-ng-dev libpam0g-dev
+          version: 1.0
+
+      - name: Creating work-folder
+        run: |
+          mkdir -pv ${BUILD_DIR}
+          mkdir -pv ${INSTALL_DIR}
+          mkdir -pv ${INSTALL_DIR}/include
+          mkdir -pv ${INSTALL_DIR}/lib
+      
+      - name: Build OpenSSL
+        run: |
+          cd ${BUILD_DIR}
+          curl https://www.openssl.org/source/openssl-${OPEN_SSL_VER}.tar.gz | tar zx
+          cd ${BUILD_DIR}/openssl-${OPEN_SSL_VER}
+          ./Configure no-tests linux-x86_64 enable-ec_nistp_64_gcc_128 no-ssl2 no-ssl3 no-comp -static-libgcc --openssldir=/usr/local/lib
+          echo "************************************************"
+          echo "******** Compiling OpenSSL..."
+          echo "************************************************"
+          make
+          echo "************************************************"
+          echo "******** Copying OpenSSL include folder and static libraries..."
+          # if you want to use OS-default SHARED openssl libraries - not necessary to compile it.
+          # Just copy required headers of OpenSSL (include folder)
+          cp -r ${BUILD_DIR}/openssl-${OPEN_SSL_VER}/include/openssl ${INSTALL_DIR}/include/
+          # if you want to use OS-default SHARED openssl libraries - skip copying this static libraries
+          cp ${BUILD_DIR}/openssl-${OPEN_SSL_VER}/libcrypto.a ${INSTALL_DIR}/lib/
+          cp ${BUILD_DIR}/openssl-${OPEN_SSL_VER}/libssl.a ${INSTALL_DIR}/lib/
+      - name: Build LZO
+        run: |
+          echo "************************************************"
+          echo "******** Downloading LZO sources..."
+          echo "************************************************"
+          cd ${BUILD_DIR}
+          curl https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz | tar zx
+          cd lzo-2.10
+          echo "************************************************"
+          echo "******** Compiling LZO..."
+          echo "************************************************"
+          ./configure --prefix="${INSTALL_DIR}" && make && make install 
+      - name: Build LZ4
+        run: |
+          cd ${BUILD_DIR}
+          git clone https://github.com/lz4/lz4
+          cd lz4
+          git checkout release
+          sudo make install PREFIX="${INSTALL_DIR}"
+          cd ${INSTALL_DIR}/lib
+          sudo rm *.so
+      - name: 'Get openvpn'
+        uses: actions/checkout@v3
+        with:
+          repository: OpenVPN/openvpn
+          ref: release/2.5
+          path: openvpn
+
+      - name: autoconf
+        working-directory: openvpn
+        run: autoreconf -fvi
+      - name: configure
+        working-directory: openvpn
+        run:  OPENSSL_LIBS="${INSTALL_DIR}/lib/libssl.a ${INSTALL_DIR}/lib/libcrypto.a -lpthread -ldl" OPENSSL_CFLAGS="-I${INSTALL_DIR}/include" 
+              LZO_LIBS="-L${INSTALL_DIR}/lib -llzo2" 
+              LZO_CFLAGS="-I${INSTALL_DIR}/include"  LZ4_LIBS="-L${INSTALL_DIR}/lib -llz4"  LZ4_CFLAGS="-I${INSTALL_DIR}/include" 
+              ./configure --disable-debug --enable-static=yes --enable-shared=no --disable-dependency-tracking --disable-dco --disable-plugin-auth-pam --disable-plugins --disable-silent-rules --with-crypto-library=openssl
+      - name: make all
+        working-directory: openvpn
+        run: make -j4 
+#      - name: make check
+#        working-directory: openvpn
+#        run: make check
+      - name: copy libs
+        working-directory: openvpn
+        run: |
+          mkdir buildOvpn
+          mkdir buildOvpn/${{matrix.arch}}
+          cp src/openvpn/openvpn buildOvpn/${{matrix.arch}}/openvpn
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: openvpn-linux
+          path: openvpn/buildOvpn/* 
+
+  github-release:
+    name: GitHub Release
+    needs: Build-OpenVPN-Linux
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name 'o*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: openvpn-linux.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true  
