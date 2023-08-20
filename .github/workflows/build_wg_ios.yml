@@ -1,0 +1,66 @@
+name: wg-ios
+
+on: [push]
+
+jobs:
+  Build-WG-iOS:
+    runs-on: macos-12
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[ios]') ||
+      contains(github.event.head_commit.message, '[ios-wg]') ||
+      contains(github.event.head_commit.message, '[wg]')    
+    strategy:
+      matrix:
+        arch: [arm64]
+
+    steps:
+      - name: Install dependencies
+        run: brew install swiftlint go
+
+      - name: Get WireGuard
+        uses: actions/checkout@v3
+        with:
+          repository: WireGuard/wireguard-apple
+          ref: 23618f994f17d8ad8f2f65d79b4a1e8a0830b334
+          path: wireguard
+
+      - name: Build WG
+        working-directory: wireguard/Sources/WireGuardKitGo
+        run: ARCHS=${{ matrix.arch }} PLATFORM_NAME=iphoneos make
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          name: wg-ios-${{ matrix.arch }}
+          path: ${{ github.workspace }}/wireguard/Sources/WireGuardKitGo/out
+          if-no-files-found: error
+          retention-days: 7
+
+  github-release:
+    name: GitHub Release
+    needs: Build-WG-iOS
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*.zip"
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true           
