@@ -1,0 +1,69 @@
+name: windows-awg
+
+on: [push]
+    
+
+jobs:
+      
+  Build-Libs-WireGuard-Windows:
+    name: 'Build-Libs-AWG-Windows'
+    runs-on: windows-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-awg]') ||
+      contains(github.event.head_commit.message, '[wireguard]')      
+
+    steps:
+     
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get Wireguard'
+      uses: actions/checkout@v3
+      with:
+        repository: amnezia-vpn/awg-windows
+        ref: master
+        path: windows/wireguard-windows
+
+    - name: 'Build WireGuard binary'
+      working-directory: windows/wireguard-windows
+      run: |
+        cmd /c build.cmd
+        mkdir build
+        move x64 build\x64
+    
+    - name: Archive WG Windows 
+      uses: actions/upload-artifact@v3
+      with:
+        retention-days: 1
+        name: windows-wireguard
+        path: windows/wireguard-windows/build           
+        
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-WireGuard-Windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: windows-wireguard_v2.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true  
