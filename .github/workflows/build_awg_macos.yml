@@ -1,0 +1,65 @@
+name: macos-awg
+
+on: [push]
+    
+jobs:
+
+  Build-AWG-MacOS:
+        
+    runs-on: macos-11
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[macos-awg]') ||
+      contains(github.event.head_commit.message, '[wireguard]') 
+    
+    name: "WireGuard for MacOS"
+    steps:
+        
+      - name: 'Get WireGuard'
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/amnezia-wg
+          ref: advanced-security
+          path: amnezia-wg
+
+      - name: 'Run build script'
+        working-directory: amnezia-wg
+        run: |
+          make
+          ./wireguard-go --version
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: awg-macos
+          path: amnezia-wg/wireguard-go 
+
+  github-release:
+    name: GitHub Release
+    needs:  Build-AWG-MacOS
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: awg-macos.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true                              
+      
