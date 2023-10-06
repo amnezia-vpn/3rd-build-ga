@@ -1,0 +1,99 @@
+name: android-awg
+
+on: [push]
+    
+
+jobs:
+
+  Build-Libs-AWG-Android:
+    name: 'Build-Libs-AWG-Android'
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[android-awg]') ||
+      contains(github.event.head_commit.message, '[awg]') 
+
+    steps:
+    
+    - name: 'Setup Java'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 'Setup Android'
+      run: |
+        export NDK_VERSION=23c
+        export ANDROID_NDK_PLATFORM=android-23
+        export ANDROID_NDK_HOME=${{ runner.temp }}/android-ndk-r${NDK_VERSION}
+        export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+        export ANDROID_CURRENT_ARCH=${{ matrix.arch }}
+
+        if [ ! -f $ANDROID_NDK_ROOT/ndk-build ]; then
+          wget https://dl.google.com/android/repository/android-ndk-r${NDK_VERSION}-linux.zip -qO ${{ runner.temp }}/ndk.zip &&
+          unzip -q -d ${{ runner.temp }} ${{ runner.temp }}/ndk.zip ;
+        fi
+
+    - name: 'Install GO'
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.20.3
+
+    - name: 'Setup ccache'
+      uses: hendrikmuhs/ccache-action@v1.2
+          
+    - name: 'Get sources'
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        fetch-depth: 10
+        
+    - name: 'Get Wireguard'
+      uses: actions/checkout@v3
+      with:
+        repository: amnezia-vpn/awg-android
+        ref: master
+        path: android/wireguard-android       
+
+    - name: 'Build Wireguard binary'
+      working-directory: android/wireguard-android
+      run: |
+        git submodule update --init --recursive
+        echo "y" | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0-rc3"
+        ./gradlew assembleRelease        
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: wg-android
+        path: android/wireguard-android/tunnel/build/intermediates/stripped_native_libs/release/out/lib/*                  
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-AWG-Android
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: wg-android.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true  
+
