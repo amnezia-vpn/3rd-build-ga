@@ -5,7 +5,7 @@ on: [push]
 
 jobs:
       
-  Build-Libs-WireGuard-Windows:
+  Build-Libs-AWG-Windows:
     name: 'Build-Libs-AWG-Windows'
     runs-on: windows-latest
     if: |
@@ -33,16 +33,16 @@ jobs:
         mkdir build
         move x64 build\x64
     
-    - name: Archive WG Windows 
+    - name: Archive AWG Windows 
       uses: actions/upload-artifact@v3
       with:
         retention-days: 1
-        name: windows-wireguard
+        name: awg-windows
         path: windows/wireguard-windows/build           
         
   github-release:
     name: GitHub Release
-    needs: Build-Libs-WireGuard-Windows
+    needs: Build-Libs-AWG-Windows
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
@@ -63,7 +63,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: windows-wireguard_v2.zip
+          file: awg-windows.zip
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true  
