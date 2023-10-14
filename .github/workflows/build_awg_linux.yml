@@ -13,14 +13,14 @@ jobs:
       contains(github.event.head_commit.message, '[linux-awg]') ||
       contains(github.event.head_commit.message, '[wireguard]') 
     
-    name: "WireGuard for MacOS"
+    name: "WireGuard for Linux"
     steps:
         
       - name: 'Get Amnezia WireGuard'
         uses: actions/checkout@v3
         with:
           repository: amnezia-vpn/amnezia-wg
-          ref: advanced-security
+          ref: master
           path: amnezia-wg
 
       - name: 'Run build script'
