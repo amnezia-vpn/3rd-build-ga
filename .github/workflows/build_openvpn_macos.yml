@@ -141,6 +141,53 @@ jobs:
           name: openvpn-macos
           path: openvpn/buildOvpn/* 
 
+  Build-OpenVPN3-MacOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12]
+        arch: [x86_64] #, arm64]
+
+
+    runs-on: ${{matrix.os}}
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[macos-openvpn]') ||
+      contains(github.event.head_commit.message, '[openvpn]') 
+    
+    name: "${{matrix.os}} - ${{matrix.arch}}"
+
+    steps:
+      - name: Install dependencies
+        run: brew install asio cmake jsoncpp lz4 openssl pkg-config
+      
+      - name: Creating work-folder
+        run: |
+          mkdir -p ${{ github.workspace }}/src
+      
+      - name: 'Get openvpn'
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/openvpn3
+          ref: win-amezia
+          path: ${{ github.workspace }}/src/openvpn3
+
+      - name: Build MacOS OpenVPN3
+        run: |
+          cd ${{ github.workspace }}/src/
+          mkdir build-openvpn3
+          cd build-openvpn3
+          cp -rf ${{ github.workspace }}/src/openvpn3/openvpn/plugin/darwin/ck-ovpn-plugin.h ${{ github.workspace }}/src/openvpn3/openvpn/transport/client/pluggable/ck-ovpn-plugin.h
+          cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=/usr/local/opt ${{ github.workspace }}/src/openvpn3
+          cmake --build . --config Release --target ovpncli
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: openvpn3-macos
+          path: ${{ github.workspace }}/src/build-openvpn3 
+
   github-release:
     name: GitHub Release
     needs: macos
@@ -167,5 +214,13 @@ jobs:
           file: openvpn-macos.zip
           tag: ${{ github.ref }}
           overwrite: true
-          file_glob: true                              
-      
+          file_glob: true            
+                            
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: openvpn3-macos.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true      

@@ -17,7 +17,7 @@ jobs:
       contains(github.event.head_commit.message, '[ios]') ||
       contains(github.event.head_commit.message, '[macos-openssl]') ||
       contains(github.event.head_commit.message, '[ios-openssl]') ||
-      contains(github.event.head_commit.message, '[openvpn]') 
+      contains(github.event.head_commit.message, '[openssl]') 
     
     name: "OpenSSL for MacOS,iOS"
     steps:

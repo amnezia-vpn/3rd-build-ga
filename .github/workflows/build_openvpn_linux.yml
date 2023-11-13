@@ -120,6 +120,67 @@ jobs:
           name: openvpn-linux
           path: openvpn/buildOvpn/* 
 
+  Build-OpenVPN3-Linux:
+    name: 'Build-OpenVPN3-Ubuntu'
+    runs-on: ubuntu-20.04
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[linux-openvpn]') ||
+      contains(github.event.head_commit.message, '[openvpn]')
+          
+    strategy:
+      matrix:
+        arch: [x86_64] #, x86, arm32, arm64]
+      fail-fast: false
+
+    env:
+      O3: "${{ github.workspace }}/O3"
+      DEP_DIR: "${{ github.workspace }}/O3/deps"
+      DL: "${{ github.workspace }}/O3/dl"
+    steps:
+      - name: Set up build environment
+        uses: awalsh128/cache-apt-pkgs-action@latest 
+        with:
+          packages: g++ make libmbedtls-dev libssl-dev liblz4-dev cmake gcc-multilib g++-multilib libnl-genl-3-dev libcap-ng-dev libpam0g-dev
+          version: 1.0
+
+      - name: Creating work-folder
+        run: |
+          mkdir -pv ${{env.O3}}
+          mkdir -pv ${{env.DEP_DIR}}
+          mkdir -pv ${{env.DL}}
+
+      - name: 'Get openvpn'
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/openvpn3
+          ref: win-amezia
+          path: ${{env.O3}}/core
+
+      - name: 'Build dependencies'
+        working-directory: ${{env.O3}}
+        run: |
+          export MTLS=0
+          cd core/scripts/linux/
+          ./build-all
+
+      - name: 'Build the OpenVPN 3 client wrapper'
+        working-directory: ${{env.O3}}
+        run: |
+          cd ${{env.O3}}/core 
+          cp -rf openvpn/plugin/linux/ck-ovpn-plugin.h openvpn/transport/client/pluggable/ck-ovpn-plugin.h
+          mkdir build && cd build
+          cmake ..
+          cmake --build . --config Release --target ovpncli
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: openvpn3-linux
+          path: ${{env.O3}}/core/build/test
+
+
   github-release:
     name: GitHub Release
     needs: Build-OpenVPN-Linux
@@ -147,3 +208,12 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true  
+      
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: openvpn3-linux.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true      

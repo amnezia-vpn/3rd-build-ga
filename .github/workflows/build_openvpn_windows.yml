@@ -73,8 +73,59 @@ jobs:
             openvpn/${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
             openvpn/${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
             openvpn/${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
-            openvpn/doc/openvpn.8.html          
+            openvpn/doc/openvpn.8.html         
 
+  openvpn3-msvc:
+    strategy:
+      matrix:
+        arch: [amd64]
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/openvpn3/vcpkg
+      BUILD_CONFIGURATION: Release
+      buildDir: '${{ github.workspace }}/openvpn3/build'
+
+    runs-on: windows-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-openvpn]') ||
+      contains(github.event.head_commit.message, '[openvpn]')
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: lukka/get-cmake@latest
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          working-directory: openvpn3        
+          arch: ${{ matrix.arch }}
+
+      - name: 'Get openvpn3'
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/openvpn3
+          ref: win-amezia
+          path: openvpn3
+          
+      - name: 'Build OpenVPN3'
+        working-directory: openvpn3
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/openvpn3/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_OVERLAY_PORTS="${{ github.workspace }}/openvpn3/deps/vcpkg-ports"
+          cmake --build build --config Release --target ovpncli    
+          
+      - uses: actions/upload-artifact@v2
+        with:
+          name: openvpn3-win
+          path: |
+              ${{ env.buildDir }}/**/*.exe
+              ${{ env.buildDir }}/**/*.dll
+              !${{ env.buildDir }}/test/ssl/**
+              !${{ env.buildDir }}/test/unittests/**
+              !${{ env.buildDir }}/CMakeFiles/**
+              !${{ env.buildDir }}/vcpkg_installed/**
+            
   github-release:
     name: GitHub Release
     needs: msvc
@@ -119,7 +170,33 @@ jobs:
           file: openvpn-win-x64.zip
           tag: ${{ github.ref }}
           overwrite: true
-          file_glob: true   
+          file_glob: true 
+          
+  ovpn3-release:
+    name: GitHub Release
+    needs: openvpn3-msvc
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.exe' -or -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
             
-             
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: openvpn3-win.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true                     
 
