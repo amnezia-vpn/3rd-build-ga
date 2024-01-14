@@ -11,7 +11,7 @@ jobs:
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[linux]') ||
       contains(github.event.head_commit.message, '[linux-awg]') ||
-      contains(github.event.head_commit.message, '[wireguard]') 
+      contains(github.event.head_commit.message, '[awg]') 
     
     name: "WireGuard for Linux"
     steps:
