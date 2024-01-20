@@ -1,0 +1,79 @@
+name: Build Tun2Socks
+
+on: [push]
+
+jobs:
+  Build-Tun2Socks:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[android]') ||      
+      contains(github.event.head_commit.message, '[tun2socks]')  
+
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v4      
+    
+      - name: 'Get Tun2Socks'
+        uses: actions/checkout@v3
+        with:
+          repository: xjasonlyu/tun2socks
+          ref: main
+          path: tun2socks
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          check-latest: true
+
+      - name: Get project dependencies
+        run: |
+          cd tun2socks
+          go mod download
+      
+      - name: Build Tun2Socks
+        run: |
+          cd tun2socks
+          make -j releases
+          cd build
+          unzip \*.zip
+          rm *.zip
+
+      - name: Upload files to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tun2socks
+          path: tun2socks/build
+
+      - name: Setup | Checksums
+        run: for file in $(find ./tun2socks/build -name '*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Create ZIP archive 
+        shell: bash
+        run: |
+          cd tun2socks
+          pushd build || exit 1
+          touch -mt $(date +%Y01010000) *
+          zip -9vr ../tun2socks.zip .
+          popd || exit 1
+          FILE=./tun2socks.zip
+          DGST=$FILE.dgst
+          for METHOD in {"md5","sha1","sha256","sha512"}
+          do
+            openssl dgst -$METHOD $FILE | sed 's/([^)]*)//g' >>$DGST
+          done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: tun2socks/tun2socks.zip*
+          tag: ${{ github.ref }}
+          file_glob: true
