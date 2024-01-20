@@ -52,7 +52,7 @@ jobs:
     - name: 'Get Wireguard'
       uses: actions/checkout@v3
       with:
-        repository: amnezia-vpn/awg-android
+        repository: amnezia-vpn/amneziawg-android
         ref: master
         path: android/wireguard-android       
 
@@ -92,7 +92,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: wg-android.zip
+          file: awg-android.zip
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true  

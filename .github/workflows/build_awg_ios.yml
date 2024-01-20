@@ -21,7 +21,7 @@ jobs:
       - name: Get WireGuard
         uses: actions/checkout@v3
         with:
-          repository: amnezia-vpn/awg-apple
+          repository: amnezia-vpn/amneziawg-apple
           ref: master
           path: awg-apple
 

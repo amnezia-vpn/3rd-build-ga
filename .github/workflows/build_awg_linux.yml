@@ -19,7 +19,7 @@ jobs:
       - name: 'Get Amnezia WireGuard'
         uses: actions/checkout@v3
         with:
-          repository: amnezia-vpn/amnezia-wg
+          repository: amnezia-vpn/amneziawg-go
           ref: master
           path: amnezia-wg
 
