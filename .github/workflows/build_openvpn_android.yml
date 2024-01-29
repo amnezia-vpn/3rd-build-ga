@@ -13,7 +13,6 @@ jobs:
       contains(github.event.head_commit.message, '[android-openvpn]') ||
       contains(github.event.head_commit.message, '[openvpn]')
 
-
     strategy:
       matrix:
         arch: [arm64-v8a, armeabi-v7a, x86, x86_64]
