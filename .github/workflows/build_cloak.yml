@@ -90,7 +90,6 @@ jobs:
         path: '~/work/3rd-build-ga/3rd-build-ga/Cloak/release/plugin'
 
   Build-Cloak-MacOS:
-        
     runs-on: macos-12
     if: |
       contains(github.event.head_commit.message, '[all]') ||
@@ -117,6 +116,35 @@ jobs:
         with:
           name: darwin-pt
           path: Cloak/release/plugin
+
+  Build-Cloak-iOS:
+    runs-on: macos-12
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[ios]') ||
+      contains(github.event.head_commit.message, '[cloak]')
+    
+    name: "Build Cloak iOS Plugin"
+    steps:
+
+      - name: Get Cloak
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/Cloak
+          ref: 28890e1c69e0b02b052fe6e438f5c3642137ab7a
+          path: Cloak
+
+      - name: 'Run build script'
+        working-directory: Cloak
+        run: |
+          GOOS=ios GOARCH=arm64 GOFLAGS="-tags=ios" CGO_CFLAGS="-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=9.0 -fembed-bitcode -arch arm64" CGO_CXXFLAGS="-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=9.0 -fembed-bitcode -arch arm64" CGO_LDFLAGS="-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=9.0 -fembed-bitcode -arch arm64" CGO_ENABLED=1 go build -buildmode=c-archive -o ck-ovpn-plugin.a ./cmd/ck-ovpn-plugin
+
+      - name: Archive iOS client binary
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 1
+          name: ck-ios-plugin
+          path: '~/work/3rd-build-ga/3rd-build-ga/Cloak/ck-ovpn-plugin*'
 
   github-release:
     name: GitHub Release
@@ -169,6 +197,15 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ck-server.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ck-ios-plugin.zip
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
