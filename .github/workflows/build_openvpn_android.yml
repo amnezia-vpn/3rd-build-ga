@@ -1,7 +1,6 @@
 name: android-openvpn
 
 on: [push]
-    
 
 jobs:
   Build-OpenVPN-Android:
