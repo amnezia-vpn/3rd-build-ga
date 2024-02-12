@@ -2,7 +2,6 @@ name: android-awg
 
 on: [push]
 
-
 jobs:
 
   Build-Libs-AWG-Android:
@@ -35,7 +34,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amnezia-vpn/amneziawg-android
-        ref: fix/android
+        ref: master
         path: android/amneziawg-android
         submodules: true
 
@@ -43,7 +42,7 @@ jobs:
       working-directory: android/amneziawg-android
       run: ./gradlew :tunnel:stripReleaseDebugSymbols
 
-    - name: Archive artifacts
+    - name: 'Archive artifacts'
       uses: actions/upload-artifact@v4
       with:
         name: awg-android
@@ -56,23 +55,23 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Setup | Checkout
-        uses: actions/checkout@v4
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
 
-      - name: Setup | Artifacts
-        uses: actions/download-artifact@v4
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
 
-      - name: Setup | Checksums
-        run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
-      - name: Zip ALL
-        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
 
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: awg-android.zip
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: awg-android.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
