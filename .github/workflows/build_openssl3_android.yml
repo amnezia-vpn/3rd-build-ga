@@ -1,0 +1,98 @@
+name: android-openssl3
+
+on: [push]
+
+jobs:
+
+  Build-Libs-OpenSSL3-Android:
+    name: 'Build-Libs-OpenSSL3-Android'
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[android-openssl3]') ||
+      contains(github.event.head_commit.message, '[openssl3]')    
+
+    env:
+      ANDROID_MIN_SDK: 24
+      ANDROID_NDK_VERSION: 'r26b'
+
+    strategy:
+      matrix:
+        include:
+        - arch: arm64-v8a
+          target: android-arm64
+        - arch: armeabi-v7a
+          target: android-arm
+        - arch: x86_64
+          target: android-x86_64
+        - arch: x86
+          target: android-x86
+
+    steps:
+
+    - name: 'Setup Android NDK'
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+
+    - name: 'Install patchelf'
+      run: sudo apt-get install -y patchelf
+
+    - name: 'Get openssl'
+      uses: actions/checkout@v4
+      with:
+        repository: openssl/openssl
+        ref: openssl-3.2.1
+        path: openssl
+
+    - name: 'Build OpenSSL3 Android'
+      run: |
+        cd openssl
+        PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+        ./Configure ${{ matrix.target }} shared no-tests -D__ANDROID_API__=${{ env.ANDROID_MIN_SDK }}
+        make -j$(nproc) SHLIB_VERSION_NUMBER= build_libs
+        mkdir -p build/${{ matrix.arch }}
+        cp libcrypto.so ./build/${{ matrix.arch }}/libcrypto_3.so
+        cp libssl.so ./build/${{ matrix.arch }}/libssl_3.so
+        cd ./build/${{ matrix.arch }}
+        patchelf --debug --set-soname libcrypto_3.so libcrypto_3.so
+        patchelf --debug --set-soname libssl_3.so libssl_3.so
+        patchelf --debug --replace-needed libcrypto.so libcrypto_3.so libssl_3.so
+
+    - name: 'Archive Android OpenSSL3 libs'
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-openssl3-${{ matrix.arch }}
+        path: openssl/build
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-OpenSSL3-Android
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
+
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*.so' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: android-openssl3.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
