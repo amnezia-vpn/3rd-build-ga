@@ -80,6 +80,7 @@ jobs:
     - name: Setup | Artifacts
       uses: actions/download-artifact@v4
       with:
+        path: android-openssl3
         merge-multiple: true
 
     - name: Setup | Checksums
