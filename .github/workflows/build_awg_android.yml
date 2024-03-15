@@ -34,7 +34,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amnezia-vpn/amneziawg-android
-        ref: master
+        ref: awg-udptlspipe
         path: android/amneziawg-android
         submodules: true
 
