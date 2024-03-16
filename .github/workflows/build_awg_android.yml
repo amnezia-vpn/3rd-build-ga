@@ -11,7 +11,10 @@ jobs:
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[android]') ||
       contains(github.event.head_commit.message, '[android-awg]') ||
-      contains(github.event.head_commit.message, '[awg]') 
+      contains(github.event.head_commit.message, '[awg]')
+
+    env:
+      ANDROID_PACKAGE_NAME: 'org.amnezia.vpn'
 
     steps:
 
@@ -46,7 +49,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: awg-android
-        path: android/amneziawg-android/tunnel/build/intermediates/stripped_native_libs/release/out/lib/*
+        path: android/amneziawg-android/tunnel/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/*
 
   github-release:
     name: GitHub Release
