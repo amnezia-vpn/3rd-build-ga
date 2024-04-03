@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: openssl/openssl
-          ref: OpenSSL_1_1_1t
+          ref: openssl-3.0.13
           path: openssl
       
       - name: Setup msbuild environment    
