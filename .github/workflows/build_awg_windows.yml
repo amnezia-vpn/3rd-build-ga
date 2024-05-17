@@ -3,7 +3,6 @@ name: windows-awg
 on: [push]
 
 jobs:
-
   Build-Libs-AWG-Windows:
     name: 'Build-Libs-AWG-Windows'
     runs-on: windows-latest
@@ -14,7 +13,6 @@ jobs:
       contains(github.event.head_commit.message, '[awg]')      
 
     steps:
-
     - name: 'Get AmneziaWG'
       uses: actions/checkout@v4
       with:
@@ -28,6 +26,7 @@ jobs:
         cmd /c build.cmd
         mkdir build
         move x64 build\x64
+        move x86 build\x86
 
     - name: 'Archive artifacts'
       uses: actions/upload-artifact@v4
