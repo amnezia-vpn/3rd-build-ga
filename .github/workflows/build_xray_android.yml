@@ -1,0 +1,79 @@
+name: android-xray
+
+on: [push]
+
+jobs:
+
+  Build-Libs-XRay-Android:
+    name: 'Build-Libs-XRay-Android'
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[android]') ||
+      contains(github.event.head_commit.message, '[android-xray]') ||
+      contains(github.event.head_commit.message, '[xray]')
+
+    env:
+      JAVA_VERSION: '17'
+      ANDROID_NDK_VERSION: 'r26b'
+
+    steps:
+
+    - name: 'Setup Java'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ env.JAVA_VERSION }}
+
+    - name: 'Setup Android NDK'
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+
+    - name: 'Get Amnezia-libxray'
+      uses: actions/checkout@v4
+      with:
+        repository: amnezia-vpn/amnezia-libxray
+        ref: main
+
+    - name: 'Setup Go'
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+
+    - name: 'Build libxray binary'
+      run: ./build.sh
+
+    - name: 'Archive artifacts'
+      uses: actions/upload-artifact@v4
+      with:
+        name: libxray-android
+        path: libxray.aar
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-XRay-Android
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*.aar' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: libxray-android.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
