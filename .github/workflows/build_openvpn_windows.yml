@@ -23,7 +23,7 @@ jobs:
         VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/openvpn/contrib/vcpkg-ports
         VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}/openvpn/contrib/vcpkg-triplets
               
-      runs-on: windows-latest
+      runs-on: windows-2019
       if: |
         contains(github.event.head_commit.message, '[all]') ||
         contains(github.event.head_commit.message, '[windows]') ||
@@ -40,7 +40,7 @@ jobs:
           ref: release/2.5
           path: openvpn
 
-      - name: Add MSBuild to PATH
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.1
 
       - name: Set up Python
@@ -51,12 +51,16 @@ jobs:
       - name: Install rst2html
         run: python -m pip install --upgrade pip rst2html
 
-      - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v10
+      - uses: lukka/get-cmake@4931ab1fc1604964c055eb330edb3f6b26ba0cfa # v3.29.2
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         with:
-          vcpkgGitCommitId: 'd10d511f25620ca0f315cd83dcef6485efc63010'
-          vcpkgJsonGlob: '**/openvpn/vcpkg.json'
-          appendedCacheKey: '${{matrix.triplet}}'
+          arch: ${{ matrix.arch }}
+
+      - name: Restore from cache and install vcpkg
+        uses: lukka/run-vcpkg@5e0cab206a5ea620130caf672fce3e4a6b5666a1 # v11.5
+        with:
+          vcpkgGitCommitId: 8b04a7bd93bef991818fc372bb83ce00ec1c1c16
+          vcpkgJsonGlob: '**/windows/vcpkg.json'
 
       - name: Run MSBuild consuming vcpkg.json
         working-directory: openvpn

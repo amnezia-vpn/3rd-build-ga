@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ssllib: [ openssl11 ]
+        ssllib: [ openssl30 ]
         build: [ normal, asan ]
         os: [macos-11, macos-12]
         arch: [x86_64] #, arm64]
@@ -22,10 +22,9 @@ jobs:
             cflags: "-O2 -g"
             ldflags: ""
             configureflags: ""
-          - ssllib: openssl11
-            libdir: openssl@1.1
+          - ssllib: openssl30
+            libdir: openssl@3.0
             configuressllib: ""
-
 
     runs-on: ${{matrix.os}}
     if: |
@@ -41,7 +40,7 @@ jobs:
       UBSAN_OPTIONS: print_stacktrace=1
       BUILD_DIR: ${{ github.workspace }}/../_deps/openvpn_build
       INSTALL_DIR: ${{ github.workspace }}/../openvpn_inst
-      OPEN_SSL_VER: "1.1.1t"
+      OPEN_SSL_VER: "3.0.13"
       _ARCH: ${{matrix.arch}}
       OPENSSL_LIBS: "-L${INSTALL_DIR}/lib -lssl -lcrypto"
       OPENSSL_CFLAGS: "-I${INSTALL_DIR}include"
@@ -159,7 +158,7 @@ jobs:
     name: "${{matrix.os}} - ${{matrix.arch}}"
     env:
       BUILD_DIR: ${{ github.workspace }}/build
-      OPEN_SSL_VER: "1.1.1t"
+      OPEN_SSL_VER: "3.0.13"
       
     steps:
       - name: Install dependencies
