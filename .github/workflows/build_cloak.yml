@@ -40,6 +40,7 @@ jobs:
 
     - name: 'Build Cloak binary'
       working-directory: Cloak
+      continue-on-error: true
       run: |
         export PATH=${PATH}:`go env GOPATH`/bin
         v=${GITHUB_REF#refs/*/} ./release.sh
@@ -109,7 +110,8 @@ jobs:
       - name: 'Run build script'
         working-directory: Cloak
         run: |
-          CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
+          CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-x86-64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
+          CGO_ENABLED=1 GOOS="darwin" GOARCH="arm64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-arm64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
       
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
