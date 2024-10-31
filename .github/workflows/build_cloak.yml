@@ -106,11 +106,26 @@ jobs:
           ref: master-amnezia
           path: Cloak
 
-      - name: 'Run build script'
+      # - name: 'Run build script'
+      #   working-directory: Cloak
+      #   run: |
+      #     CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
+      - name: Build for x86_64
         working-directory: Cloak
         run: |
-          CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
-      
+          CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-x86_64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
+
+      - name: Build for arm64
+        working-directory: Cloak
+        run: |
+          CGO_ENABLED=1 GOOS="darwin" GOARCH="arm64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-arm64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
+
+      - name: Create Fat Binary (Universal Binary)
+        working-directory: Cloak
+        run: |
+          lipo -create -output ./release/plugin/darwin/ck-ovpn-plugin.a \
+            ./release/plugin/darwin/ck-ovpn-plugin-x86_64.a \
+            ./release/plugin/darwin/ck-ovpn-plugin-arm64.a
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
