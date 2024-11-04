@@ -94,10 +94,15 @@ jobs:
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[macos]') ||
-      contains(github.event.head_commit.message, '[cloak]')
+      contains(github.event.head_commit.message, '[cloak]') ||
+      contains(github.event.head_commit.message, '[cloak-macos]')
     
-    name: "Build Cloak Desktop plugin"
+    name: "Build Cloak MacOS plugin"
     steps:
+      - name: 'Install GO'
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.22'
 
       - name: Get Cloak
         uses: actions/checkout@v3
@@ -106,16 +111,12 @@ jobs:
           ref: master-amnezia
           path: Cloak
 
-      # - name: 'Run build script'
-      #   working-directory: Cloak
-      #   run: |
-      #     CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
-      - name: Build for x86_64
+      - name: Build for x86_64 MacOS
         working-directory: Cloak
         run: |
           CGO_ENABLED=1 GOOS="darwin" GOARCH="amd64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-x86_64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
 
-      - name: Build for arm64
+      - name: Build for arm64 MacOS
         working-directory: Cloak
         run: |
           CGO_ENABLED=1 GOOS="darwin" GOARCH="arm64" go build -v -o ./release/plugin/darwin/ck-ovpn-plugin-arm64.a -buildmode=c-archive ./cmd/ck-ovpn-plugin/
