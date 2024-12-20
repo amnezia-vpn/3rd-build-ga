@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-macos:
-    name: 'AmneziaWG for macOS NE'
+    name: 'OpenVPNAdapter for macOS NE'
     runs-on: macos-latest
     if: |
       contains(github.event.head_commit.message, '[all]') ||
@@ -62,7 +62,7 @@ jobs:
           name: OpenVPNAdapter-macos
           path: OpenVPNAdapter/build/Release-macos
   build-ios:
-    name: 'Build OpenVPNAdapter for iOS'
+    name: 'OpenVPNAdapter for iOS'
     runs-on: macos-latest
     if: |
       contains(github.event.head_commit.message, '[all]') ||
