@@ -1,4 +1,4 @@
-name: Build OpenVPNAdapter for macos ne
+name: Build OpenVPNAdapter for Apple
 
 on: [push]
 
@@ -61,3 +61,52 @@ jobs:
         with:
           name: OpenVPNAdapter-macos
           path: OpenVPNAdapter/build/Release-macos
+  build-ios:
+    name: 'Build OpenVPNAdapter for iOS'
+    runs-on: macos-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[ios]') ||
+      contains(github.event.head_commit.message, '[openvpnadapter]')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: 'Get OpenVPNAdapter'
+        uses: actions/checkout@v3
+        with:
+          repository: amnezia-vpn/OpenVPNAdapter
+          ref: master
+          path: OpenVPNAdapter
+
+      - name: Configure amnezia.xcconfig
+        run: |
+          export WORKINGDIR=`pwd`
+          echo "Configuring amnezia.xcconfig..."
+          cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          cat << EOF >> $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
+          CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos
+          BUILT_PRODUCTS_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos
+          EOF
+
+      - name: Build OpenVPNAdapter for iOS
+        run: |
+          export SDK_PATH=`xcrun --sdk iphoneos --show-sdk-path`
+          export CLANG=`xcrun --sdk iphoneos --find clang`
+          export XCODEBUILD="/usr/bin/xcodebuild"
+
+          cd OpenVPNAdapter
+          $XCODEBUILD -scheme OpenVPNAdapter \
+            -configuration Release \
+            -xcconfig Configuration/amnezia.xcconfig \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -project OpenVPNAdapter.xcodeproj
+
+      - name: Archive Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenVPNAdapter-ios
+          path: OpenVPNAdapter/build/Release-iphoneos
