@@ -27,6 +27,7 @@ jobs:
           export XCODEBUILD="/usr/bin/xcodebuild"
           export WORKINGDIR=`pwd`
           export PATCH="/usr/bin/patch"
+          echo "Working directory: $WORKINGDIR"
 
       - name: Configure amnezia.xcconfig
         run: |
