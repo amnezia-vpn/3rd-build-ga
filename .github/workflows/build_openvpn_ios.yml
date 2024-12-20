@@ -20,13 +20,6 @@ jobs:
           repository: amnezia-vpn/OpenVPNAdapter
           ref: feature/macox-network-extension
           path: OpenVPNAdapter
-
-      - name: Set up Xcode environment
-        run: |
-          echo "Setting up Xcode environment"
-          export XCODEBUILD="/usr/bin/xcodebuild"
-          export WORKINGDIR=`pwd`
-          export PATCH="/usr/bin/patch"
           
       - name: Configure amnezia.xcconfig
         run: |
@@ -50,6 +43,7 @@ jobs:
       - name: Build OpenVPNAdapter
         run: |
           cd OpenVPNAdapter
+          export XCODEBUILD="/usr/bin/xcodebuild"
           $XCODEBUILD -scheme OpenVPNAdapter \
             -configuration Release \
             -xcconfig Configuration/amnezia.xcconfig \
