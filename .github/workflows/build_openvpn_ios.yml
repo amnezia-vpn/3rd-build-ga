@@ -31,11 +31,11 @@ jobs:
       - name: Configure amnezia.xcconfig
         run: |
           echo "Configuring amnezia.xcconfig..."
-          cat $WORKINGDIR/3rd/OpenVPNAdapter/Configuration/Project-MacNE.xcconfig > $WORKINGDIR/3rd/OpenVPNAdapter/Configuration/amnezia.xcconfig
-          cat << EOF >> $WORKINGDIR/3rd/OpenVPNAdapter/Configuration/amnezia.xcconfig
-          PROJECT_TEMP_DIR = $WORKINGDIR/3rd/OpenVPNAdapter/build/OpenVPNAdapter.build
-          CONFIGURATION_BUILD_DIR = $WORKINGDIR/3rd/OpenVPNAdapter/build/Release-macos
-          BUILT_PRODUCTS_DIR = $WORKINGDIR/3rd/OpenVPNAdapter/build/Release-macos
+          cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project-MacNE.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          cat << EOF >> $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
+          CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
+          BUILT_PRODUCTS_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
           EOF
 
       - name: Get macOS SDK 
@@ -47,7 +47,7 @@ jobs:
 
       - name: Build OpenVPNAdapter
         run: |
-          cd 3rd/OpenVPNAdapter
+          cd OpenVPNAdapter
           $XCODEBUILD -scheme OpenVPNAdapter \
             -configuration Release \
             -xcconfig Configuration/amnezia.xcconfig \
@@ -64,4 +64,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: OpenVPNAdapter-macos
-          path: 3rd/OpenVPNAdapter/build/Release-macos
+          path: OpenVPNAdapter/build/Release-macos
