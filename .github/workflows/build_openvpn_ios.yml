@@ -27,10 +27,10 @@ jobs:
           export XCODEBUILD="/usr/bin/xcodebuild"
           export WORKINGDIR=`pwd`
           export PATCH="/usr/bin/patch"
-          echo "Working directory: $WORKINGDIR"
-
+          
       - name: Configure amnezia.xcconfig
         run: |
+          echo "Working directory: $WORKINGDIR"
           echo "Configuring amnezia.xcconfig..."
           cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project-MacNE.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
           cat << EOF >> $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
