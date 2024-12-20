@@ -1,4 +1,4 @@
-name: Build OpenVPNAdapter for ios
+name: Build OpenVPNAdapter for macos ne
 
 on: [push]
 
