@@ -30,6 +30,7 @@ jobs:
           
       - name: Configure amnezia.xcconfig
         run: |
+          export WORKINGDIR=`pwd`
           echo "Working directory: $WORKINGDIR"
           echo "Configuring amnezia.xcconfig..."
           cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project-MacNE.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
