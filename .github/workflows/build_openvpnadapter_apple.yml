@@ -55,6 +55,7 @@ jobs:
         run: |
           echo "Removing CodeSignature if exists..."
           rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
+          rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
 
       - name: Archive Build
         uses: actions/upload-artifact@v3
