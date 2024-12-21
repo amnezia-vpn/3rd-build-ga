@@ -40,7 +40,7 @@ jobs:
           echo "Using macOS SDK version: $MACOSX_SDK"
           echo "::set-output name=sdk::$MACOSX_SDK"
 
-      - name: Build OpenVPNAdapter for x86_64
+      - name: Build OpenVPNAdapter
         run: |
           cd OpenVPNAdapter
           export XCODEBUILD="/usr/bin/xcodebuild"
@@ -49,27 +49,7 @@ jobs:
             -xcconfig Configuration/amnezia.xcconfig \
             -sdk macosx${{ steps.sdk_version.outputs.sdk }} \
             -destination 'generic/platform=macOS' \
-            -arch x86_64 \
             -project OpenVPNAdapter.xcodeproj
-
-      - name: Build OpenVPNAdapter for arm64
-        run: |
-          cd OpenVPNAdapter
-          export XCODEBUILD="/usr/bin/xcodebuild"
-          $XCODEBUILD -scheme OpenVPNAdapter \
-            -configuration Release \
-            -xcconfig Configuration/amnezia.xcconfig \
-            -sdk macosx${{ steps.sdk_version.outputs.sdk }} \
-            -destination 'generic/platform=macOS' \
-            -arch arm64 \
-            -project OpenVPNAdapter.xcodeproj
-
-      - name: Create Universal Binary
-        run: |
-          cd OpenVPNAdapter/build/Release-macos
-          lipo -create -output OpenVPNAdapter.framework/OpenVPNAdapter \
-            x86_64/OpenVPNAdapter.framework/OpenVPNAdapter \
-            arm64/OpenVPNAdapter.framework/OpenVPNAdapter
 
       - name: Remove CodeSignature
         run: |
