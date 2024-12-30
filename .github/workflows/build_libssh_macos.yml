@@ -21,7 +21,7 @@ jobs:
       contains(github.event.head_commit.message, '[libssh]')    
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [x86_64]
         # no-crypto=yes: builds version with all crypto disabled
         # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
         no_crypto:
@@ -48,34 +48,24 @@ jobs:
     - name: Build zlib
       run: |
         cd zlib-${{env.ZLIB_VERSION}}
-        cmake . -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+        cmake .
         make zlibstatic
         cp ./libz.a ${{github.workspace}}/libssh-${{env.LIBSSH_VERSION}}/build/libz.a
 
     - name: Build openssl
       run: |
         cd openssl-${{env.OPENSSL_VERSION}}
-        ./Configure no-asm no-shared darwin64-${{ matrix.arch }}-cc
+        ./Configure no-asm no-shared darwin64-x86_64-cc
         make
 
     - name: Build libssh
       run: |
         cd libssh-${{env.LIBSSH_VERSION}}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
         make ssh
-        make install
 
-    - name: Copy libssh.a to build directory
-      run: |
-        mkdir -p libssh-${{env.LIBSSH_VERSION}}/build/${{ matrix.arch }}
-        cp /usr/local/lib/libssh.a libssh-${{env.LIBSSH_VERSION}}/build/${{ matrix.arch }}/libssh.a
-        cp ${{ github.workspace }}/zlib-${{ env.ZLIB_VERSION }}/libz.a libssh-${{env.LIBSSH_VERSION}}/build/${{ matrix.arch }}/libz.a
-
-    - name: List files in build directory
-      run: ls -la libssh-${{env.LIBSSH_VERSION}}/build/${{ matrix.arch }}
-      
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: libssh-macos-${{ matrix.arch }}
         path: ${{ github.workspace }}/libssh-${{env.LIBSSH_VERSION}}/build
@@ -90,7 +80,7 @@ jobs:
 
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Setup | Artifacts
         uses: actions/download-artifact@v2
