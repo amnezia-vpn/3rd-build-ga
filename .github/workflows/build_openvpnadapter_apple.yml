@@ -56,6 +56,10 @@ jobs:
           echo "Removing CodeSignature if exists..."
           rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
           rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
+          rm -rf ./build/Release-macos/LZ4.framework
+          rm -rf ./build/Release-macos/OpenVPNClient.framework
+          rm -rf ./build/Release-macos/mbedTLS.framework
+          rm -rf ./build/Release-macos/OpenVPNAdapter.framework.dSYM
 
       - name: Archive Build
         uses: actions/upload-artifact@v3
@@ -105,7 +109,15 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -project OpenVPNAdapter.xcodeproj
-
+      - name: Remove CodeSignature
+        run: |
+          echo "Removing CodeSignature if exists..."
+          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
+          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
+          rm -rf ./build/Release-iphoneos/LZ4.framework
+          rm -rf ./build/Release-iphoneos/OpenVPNClient.framework
+          rm -rf ./build/Release-iphoneos/mbedTLS.framework
+          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
