@@ -161,5 +161,4 @@ jobs:
         overwrite: true
         file: |
           openvpnadapter-mac.zip
-          openvpnadapter-ios.zip
         file_glob: false
