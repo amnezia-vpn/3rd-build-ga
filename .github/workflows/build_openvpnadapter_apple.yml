@@ -115,7 +115,6 @@ jobs:
     name: GitHub Release
     needs: [build-macos, build-ios]
     runs-on: ubuntu-latest
-    # if: startsWith(github.ref, 'refs/tags/')
     if: contains(github.event.head_commit.message, '[openvpnadapter]')
 
     steps:
@@ -133,21 +132,22 @@ jobs:
       with:
         name: OpenVPNAdapter-ios
         path: openvpnadapter-ios/
-        
+
     - name: Setup | Generate Checksums
       run: |
         find openvpnadapter-mac/ openvpnadapter-ios/ \
         -type f \( -name '*.framework' -o -name '*.dylib' \) \
         -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
-    - name: Zip macOS Artifacts
+    - name: Create Combined Folder
       run: |
-        zip -r openvpnadapter-mac.zip openvpnadapter-mac/
-      shell: bash
+        mkdir -p openvpnadapter
+        cp -r openvpnadapter-mac/ openvpnadapter/
+        cp -r openvpnadapter-ios/ openvpnadapter/
 
-    - name: Zip iOS Artifacts
+    - name: Zip Combined Artifacts
       run: |
-        zip -r openvpnadapter-ios.zip openvpnadapter-ios/
+        zip -r openvpnadapter.zip openvpnadapter/
       shell: bash
 
     - name: List Generated Files
@@ -159,6 +159,5 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ github.ref }}
         overwrite: true
-        file: |
-          openvpnadapter-mac.zip
+        file: openvpnadapter.zip
         file_glob: false
