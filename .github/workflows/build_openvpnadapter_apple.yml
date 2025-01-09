@@ -111,46 +111,46 @@ jobs:
         with:
           name: OpenVPNAdapter-ios
           path: OpenVPNAdapter/build/Release-iphoneos
-github-release:
-  name: GitHub Release
-  needs: [build-macos, build-ios]
-  runs-on: ubuntu-latest
-  if: startsWith(github.ref, 'refs/tags/')
+  github-release:
+    name: GitHub Release
+    needs: [build-macos, build-ios]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
 
-  steps:
-  - name: Setup | Checkout
-    uses: actions/checkout@v3
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v3
 
-  - name: Setup | Download macOS Artifact
-    uses: actions/download-artifact@v3
-    with:
-      name: OpenVPNAdapter-macos
-      path: openvpnadapter-mac/
+    - name: Setup | Download macOS Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: OpenVPNAdapter-macos
+        path: openvpnadapter-mac/
 
-  - name: Setup | Download iOS Artifact
-    uses: actions/download-artifact@v3
-    with:
-      name: OpenVPNAdapter-ios
-      path: openvpnadapter-ios/
+    - name: Setup | Download iOS Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: OpenVPNAdapter-ios
+        path: openvpnadapter-ios/
 
-  - name: Setup | Generate Checksums
-    run: |
-      for file in $(find ./ -type f -name '*.framework' -o -name '*.dylib'); do
-        openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"
-      done
+    - name: Setup | Generate Checksums
+      run: |
+        for file in $(find ./ -type f -name '*.framework' -o -name '*.dylib'); do
+          openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"
+        done
 
-  - name: Zip macOS and iOS Artifacts
-    run: |
-      zip -r openvpnadapter-mac.zip openvpnadapter-mac/
-      zip -r openvpnadapter-ios.zip openvpnadapter-ios/
+    - name: Zip macOS and iOS Artifacts
+      run: |
+        zip -r openvpnadapter-mac.zip openvpnadapter-mac/
+        zip -r openvpnadapter-ios.zip openvpnadapter-ios/
 
-  - name: Upload Binaries to GitHub Release
-    uses: svenstaro/upload-release-action@v2
-    with:
-      repo_token: ${{ secrets.GITHUB_TOKEN }}
-      tag: ${{ github.ref }}
-      overwrite: true
-      file: |
-        openvpnadapter-mac.zip
-        openvpnadapter-ios.zip
-      file_glob: false
+    - name: Upload Binaries to GitHub Release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        overwrite: true
+        file: |
+          openvpnadapter-mac.zip
+          openvpnadapter-ios.zip
+        file_glob: false
