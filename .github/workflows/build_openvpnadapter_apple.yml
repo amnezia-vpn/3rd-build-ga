@@ -133,17 +133,25 @@ jobs:
       with:
         name: OpenVPNAdapter-ios
         path: openvpnadapter-ios/
-
+        
     - name: Setup | Generate Checksums
       run: |
-        for file in $(find ./ -type f -name '*.framework' -o -name '*.dylib'); do
-          openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"
-        done
+        find openvpnadapter-mac/ openvpnadapter-ios/ \
+        -type f \( -name '*.framework' -o -name '*.dylib' \) \
+        -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
-    - name: Zip macOS and iOS Artifacts
+    - name: Zip macOS Artifacts
       run: |
         zip -r openvpnadapter-mac.zip openvpnadapter-mac/
+      shell: bash
+
+    - name: Zip iOS Artifacts
+      run: |
         zip -r openvpnadapter-ios.zip openvpnadapter-ios/
+      shell: bash
+
+    - name: List Generated Files
+      run: ls -l
 
     - name: Upload Binaries to GitHub Release
       uses: svenstaro/upload-release-action@v2
