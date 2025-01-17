@@ -132,7 +132,7 @@ jobs:
       - name: Generate Checksums for iOS
         run: |
           export WORKINGDIR=`pwd`
-          find $WORKINGDIR/OpenVPNAdapter/build/Release-ios/ \
+          find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/ \
           -type f \( -name '*.framework' -o -name '*.dylib' \) \
           -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
           
