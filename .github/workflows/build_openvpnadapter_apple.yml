@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-macos:
-    name: 'OpenVPNAdapter for MacOS NE'
+    name: 'OpenVPNAdapter for macOS NE'
     runs-on: macos-latest
     if: |
       contains(github.event.head_commit.message, '[all]') ||
@@ -53,16 +53,18 @@ jobs:
 
       - name: Remove CodeSignature
         run: |
+          export WORKINGDIR=`pwd`
           echo "Removing CodeSignature if exists..."
-          rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
-          rm -rf ./build/Release-macos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
-          rm -rf ./build/Release-macos/LZ4.framework
-          rm -rf ./build/Release-macos/OpenVPNClient.framework
-          rm -rf ./build/Release-macos/mbedTLS.framework
-          rm -rf ./build/Release-macos/OpenVPNAdapter.framework.dSYM
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/LZ4.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNClient.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/mbedTLS.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework.dSYM
       - name: Generate Checksums for macOS
         run: |
-          find ./build/Release-macos/ \
+          export WORKINGDIR=`pwd`
+          find $WORKINGDIR/OpenVPNAdapter/build/Release-macos/ \
           -type f \( -name '*.framework' -o -name '*.dylib' \) \
           -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
@@ -116,16 +118,18 @@ jobs:
             -project OpenVPNAdapter.xcodeproj
       - name: Remove CodeSignature
         run: |
+          export WORKINGDIR=`pwd`
           echo "Removing CodeSignature if exists..."
-          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
-          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
-          rm -rf ./build/Release-iphoneos/LZ4.framework
-          rm -rf ./build/Release-iphoneos/OpenVPNClient.framework
-          rm -rf ./build/Release-iphoneos/mbedTLS.framework
-          rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/LZ4.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNClient.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/mbedTLS.framework
+          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
       - name: Generate Checksums for iOS
         run: |
-          find ./build/Release-iphoneos/ \
+          export WORKINGDIR=`pwd`
+          find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/ \
           -type f \( -name '*.framework' -o -name '*.dylib' \) \
           -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
