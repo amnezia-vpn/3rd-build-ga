@@ -81,6 +81,7 @@ jobs:
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[ios]') ||
+      contains(github.event.head_commit.message, '[openvpnadapter-ios]') ||
       contains(github.event.head_commit.message, '[openvpnadapter]')
 
     steps:
@@ -129,18 +130,24 @@ jobs:
           rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/mbedTLS.framework
           rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
 
-      - name: Generate Checksums for iOS
+      - name: Generate Checksums for OpenVPNAdapter.framework
         run: |
           export WORKINGDIR=`pwd`
-          find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/ \
-          -type f \( -name '*.framework' -o -name '*.dylib' \) \
-          -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+          if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework" ]; then
+            echo "Generating checksums for OpenVPNAdapter.framework..."
+            find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework \
+              -type f \
+              -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+          else
+            echo "Directory $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework does not exist."
+            exit 1
+          fi
           
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
           name: OpenVPNAdapter-ios
-          path: OpenVPNAdapter/build
+          path: OpenVPNAdapter/build/Release-iphoneos
   github-release:
     name: GitHub Release
     needs: [build-macos, build-ios]
