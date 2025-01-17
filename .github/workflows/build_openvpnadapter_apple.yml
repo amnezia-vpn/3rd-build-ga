@@ -63,18 +63,24 @@ jobs:
           rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/mbedTLS.framework
           rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework.dSYM
 
-      - name: Generate Checksums for macOS
+      - name: Generate Checksums for OpenVPNAdapter.framework
         run: |
           export WORKINGDIR=`pwd`
-          find $WORKINGDIR/OpenVPNAdapter/build/Release-macos/ \
-          -type f \( -name '*.framework' -o -name '*.dylib' \) \
-          -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+          if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework" ]; then
+            echo "Generating checksums for OpenVPNAdapter.framework..."
+            find $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework \
+              -type f \
+              -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+          else
+            echo "Directory $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework does not exist."
+            exit 1
+          fi
 
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
           name: OpenVPNAdapter-macos
-          path: OpenVPNAdapter/build
+          path: OpenVPNAdapter/build/Realease-macos
   build-ios:
     name: 'OpenVPNAdapter for iOS'
     runs-on: macos-latest
