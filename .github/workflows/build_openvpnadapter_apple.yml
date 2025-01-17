@@ -80,8 +80,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: OpenVPNAdapter-macos
-          path: OpenVPNAdapter/build/Realease-macos
-          
+          path: OpenVPNAdapter/build/Release-macos
+
   build-ios:
     name: 'OpenVPNAdapter for iOS'
     runs-on: macos-latest
