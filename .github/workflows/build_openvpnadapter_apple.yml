@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-macos:
-    name: 'OpenVPNAdapter for macOS NE'
+    name: 'OpenVPNAdapter for MacOS NE'
     runs-on: macos-latest
     if: |
       contains(github.event.head_commit.message, '[all]') ||
