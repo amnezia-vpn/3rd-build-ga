@@ -130,7 +130,11 @@ jobs:
     name: GitHub Release
     needs: [build-macos, build-ios]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    # if: startsWith(github.ref, 'refs/tags/')
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[openvpnadapter]')
 
     steps:
     - name: Setup | Checkout
@@ -144,7 +148,7 @@ jobs:
 
     - name: Generate Checksums for macOS
       run: |
-        find ./openvpnadapter-ios \
+        find ./openvpnadapter-mac/ \
         -type f \( -name '*.framework' -o -name '*.dylib' \) \
         -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
@@ -156,7 +160,7 @@ jobs:
   
     - name: Generate Checksums for iOS
       run: |
-        find ./openvpnadapter-ios \
+        find ./openvpnadapter-ios/ \
         -type f \( -name '*.framework' -o -name '*.dylib' \) \
         -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
