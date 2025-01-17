@@ -60,6 +60,11 @@ jobs:
           rm -rf ./build/Release-macos/OpenVPNClient.framework
           rm -rf ./build/Release-macos/mbedTLS.framework
           rm -rf ./build/Release-macos/OpenVPNAdapter.framework.dSYM
+      - name: Generate Checksums for macOS
+        run: |
+          find ./build/Release-macos/ \
+          -type f \( -name '*.framework' -o -name '*.dylib' \) \
+          -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
       - name: Archive Build
         uses: actions/upload-artifact@v3
@@ -118,6 +123,12 @@ jobs:
           rm -rf ./build/Release-iphoneos/OpenVPNClient.framework
           rm -rf ./build/Release-iphoneos/mbedTLS.framework
           rm -rf ./build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
+      - name: Generate Checksums for iOS
+        run: |
+          find ./build/Release-iphoneos/ \
+          -type f \( -name '*.framework' -o -name '*.dylib' \) \
+          -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+
       - name: Archive Build
         uses: actions/upload-artifact@v3
         with:
@@ -144,12 +155,6 @@ jobs:
       with:
         name: OpenVPNAdapter-ios
         path: openvpnadapter-ios/
-
-    - name: Setup | Generate Checksums
-      run: |
-        find openvpnadapter-mac/ openvpnadapter-ios/ \
-        -type f \( -name '*.framework' -o -name '*.dylib' \) \
-        -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
 
     - name: Create Combined Folder
       run: |
