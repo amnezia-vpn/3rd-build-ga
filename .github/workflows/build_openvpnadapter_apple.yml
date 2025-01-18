@@ -99,7 +99,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: amnezia-vpn/OpenVPNAdapter
-          ref: master
+          ref: 7c821a8d5c1ad5ad94e0763b4f25a875b5a6fe1b
           path: OpenVPNAdapter
 
       - name: Configure amnezia.xcconfig
