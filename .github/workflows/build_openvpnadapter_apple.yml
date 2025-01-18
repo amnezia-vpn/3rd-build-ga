@@ -94,6 +94,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: 'Get OpenVPNAdapter'
         uses: actions/checkout@v3
@@ -101,6 +103,7 @@ jobs:
           repository: amnezia-vpn/OpenVPNAdapter
           ref: 7c821a8d5c1ad5ad94e0763b4f25a875b5a6fe1b
           path: OpenVPNAdapter
+          submodules: recursive
 
       - name: Configure amnezia.xcconfig
         run: |
