@@ -3,85 +3,6 @@ name: Build OpenVPNAdapter for Apple
 on: [push]
 
 jobs:
-  build-macos:
-    name: 'OpenVPNAdapter for macOS NE'
-    runs-on: macos-latest
-    if: |
-      contains(github.event.head_commit.message, '[all]') ||
-      contains(github.event.head_commit.message, '[macos]') ||
-      contains(github.event.head_commit.message, '[openvpnadapter]')
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: 'Get OpenVPNAdapter'
-        uses: actions/checkout@v3
-        with:
-          repository: amnezia-vpn/OpenVPNAdapter
-          ref: feature/macox-network-extension
-          path: OpenVPNAdapter
-          
-      - name: Configure amnezia.xcconfig
-        run: |
-          export WORKINGDIR=`pwd`
-          echo "Working directory: $WORKINGDIR"
-          echo "Configuring amnezia.xcconfig..."
-          cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project-MacNE.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
-          cat << EOF >> $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
-          PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
-          CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
-          BUILT_PRODUCTS_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
-          EOF
-
-      - name: Get macOS SDK 
-        id: sdk_version
-        run: |
-          MACOSX_SDK=$(xcrun --sdk macosx --show-sdk-path | sed -E 's/.*MacOSX([0-9]+\.[0-9]+)\.sdk/\1/')
-          echo "Using macOS SDK version: $MACOSX_SDK"
-          echo "::set-output name=sdk::$MACOSX_SDK"
-
-      - name: Build OpenVPNAdapter
-        run: |
-          cd OpenVPNAdapter
-          export XCODEBUILD="/usr/bin/xcodebuild"
-          $XCODEBUILD -scheme OpenVPNAdapter \
-            -configuration Release \
-            -xcconfig Configuration/amnezia.xcconfig \
-            -sdk macosx${{ steps.sdk_version.outputs.sdk }} \
-            -destination 'generic/platform=macOS' \
-            -project OpenVPNAdapter.xcodeproj
-
-      - name: Remove CodeSignature
-        run: |
-          export WORKINGDIR=`pwd`
-          echo "Removing CodeSignature if exists..."
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/LZ4.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNClient.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/mbedTLS.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework.dSYM
-
-      - name: Generate Checksums for OpenVPNAdapter.framework
-        run: |
-          export WORKINGDIR=`pwd`
-          if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework" ]; then
-            echo "Generating checksums for OpenVPNAdapter.framework..."
-            find $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework \
-              -type f \
-              -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
-          else
-            echo "Directory $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework does not exist."
-            exit 1
-          fi
-
-      - name: Archive Build
-        uses: actions/upload-artifact@v3
-        with:
-          name: OpenVPNAdapter-macos
-          path: OpenVPNAdapter/build/Release-macos
-
   build-ios:
     name: 'OpenVPNAdapter for iOS'
     runs-on: macos-latest
@@ -101,7 +22,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: amnezia-vpn/OpenVPNAdapter
-          ref: 7c821a8d5c1ad5ad94e0763b4f25a875b5a6fe1b
+          ref: 66e6e922a9b58f04aa89087fcc1f9602d2025707
           path: OpenVPNAdapter
           submodules: recursive
 
@@ -128,7 +49,11 @@ jobs:
             -xcconfig Configuration/amnezia.xcconfig \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
-            -project OpenVPNAdapter.xcodeproj
+            -project OpenVPNAdapter.xcodeproj \
+            CODE_SIGNING_ALLOWED=NO
+
+      # With CODE_SIGNING_ALLOWED=NO this part is redundant, but it's not just signatures are being deleted here,
+      # It's also dependant frameworks and debyg symbols.
       - name: Remove CodeSignature
         run: |
           export WORKINGDIR=`pwd`
@@ -157,10 +82,11 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: OpenVPNAdapter-ios
-          path: OpenVPNAdapter/build/Release-iphoneos
+          path: 'OpenVPNAdapter/build/Release-iphoneos'
+
   github-release:
     name: GitHub Release
-    needs: [build-macos, build-ios]
+    needs: [build-ios]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
