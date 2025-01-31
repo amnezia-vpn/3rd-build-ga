@@ -94,12 +94,6 @@ jobs:
     - name: Setup | Checkout
       uses: actions/checkout@v3
 
-    - name: Setup | Download macOS Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: OpenVPNAdapter-macos
-        path: openvpnadapter-mac/
-
     - name: Setup | Download iOS Artifact
       uses: actions/download-artifact@v3
       with:
@@ -109,7 +103,6 @@ jobs:
     - name: Create Combined Folder
       run: |
         mkdir -p openvpnadapter
-        cp -r openvpnadapter-mac/ openvpnadapter/
         cp -r openvpnadapter-ios/ openvpnadapter/
 
     - name: Zip Combined Artifacts
