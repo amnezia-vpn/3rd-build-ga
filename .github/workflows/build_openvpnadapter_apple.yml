@@ -53,7 +53,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       # With CODE_SIGNING_ALLOWED=NO this part is redundant, but it's not just signatures are being deleted here,
-      # It's also dependant frameworks and debyg symbols.
+      # It's also dependant frameworks and debug symbols.
       - name: Remove CodeSignature
         run: |
           export WORKINGDIR=`pwd`
