@@ -3,6 +3,72 @@ name: Build OpenVPNAdapter for Apple
 on: [push]
 
 jobs:
+  build-macos:
+    name: 'OpenVPNAdapter for macOS'
+    runs-on: macos-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[openvpnadapter-macos]') ||
+      contains(github.event.head_commit.message, '[openvpnadapter]')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: amnezia-vpn/OpenVPNAdapter
+          path: OpenVPNAdapter
+          ref: master-amnezia
+          submodules: recursive
+
+      - name: Configure amnezia.xcconfig
+        run: |
+          WORKINGDIR=$(pwd)
+          echo "Configuring amnezia.xcconfig..."
+          cat << EOF > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
+          CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
+          BUILT_PRODUCTS_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
+          SKIP_INSTALL = NO
+          BUILD_LIBRARY_FOR_DISTRIBUTION = YES
+          CODE_SIGNING_ALLOWED = NO
+          CODE_SIGNING_REQUIRED = NO
+          EOF
+
+      - name: Print macOS SDK Version
+        run: |
+          MACOSX_SDK=$(xcrun --sdk macosx --show-sdk-path | sed -E 's/.*MacOSX([0-9]+\.[0-9]+)\.sdk/\1/')
+          echo "Using macOS SDK version: $MACOSX_SDK"
+
+      - name: Build OpenVPNAdapter for macOS
+        run: |
+          echo "Building OpenVPNAdapter for macOS..."
+          xcrun xcodebuild \
+            -project OpenVPNAdapter/OpenVPNAdapter.xcodeproj \
+            -xcconfig OpenVPNAdapter/Configuration/amnezia.xcconfig \
+            -scheme OpenVPNAdapter \
+            -destination 'generic/platform=macOS' \
+            -configuration Release \
+            -sdk macosx
+
+      - name: Generate Checksums for OpenVPNAdapter.framework
+        run: |
+          export WORKINGDIR=`pwd`
+          if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework" ]; then
+            echo "Generating checksums for OpenVPNAdapter.framework..."
+            find $WORKINGDIR/OpenVPNAdapter/build/Release-macos \
+              -type f \
+              -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
+          else
+            echo "Directory $WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework does not exist."
+            exit 1
+          fi
+
+      - name: Archive Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenVPNAdapter-macos
+          path: 'OpenVPNAdapter/build/Release-macos'
+
   build-ios:
     name: 'OpenVPNAdapter for iOS'
     runs-on: macos-latest
@@ -13,12 +79,7 @@ jobs:
       contains(github.event.head_commit.message, '[openvpnadapter]')
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 'Get OpenVPNAdapter'
+      - name: Get OpenVPNAdapter
         uses: actions/checkout@v4
         with:
           repository: amnezia-vpn/OpenVPNAdapter
@@ -28,49 +89,35 @@ jobs:
 
       - name: Configure amnezia.xcconfig
         run: |
-          export WORKINGDIR=`pwd`
+          WORKINGDIR=$(pwd)
           echo "Configuring amnezia.xcconfig..."
-          cat $WORKINGDIR/OpenVPNAdapter/Configuration/Project.xcconfig > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
-          cat << EOF >> $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
+          cat << EOF > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
           PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
           CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos
           BUILT_PRODUCTS_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos
+          SKIP_INSTALL = NO
+          BUILD_LIBRARY_FOR_DISTRIBUTION = YES
+          CODE_SIGNING_ALLOWED = NO
+          CODE_SIGNING_REQUIRED = NO
           EOF
 
       - name: Build OpenVPNAdapter for iOS
         run: |
-          export SDK_PATH=`xcrun --sdk iphoneos --show-sdk-path`
-          export CLANG=`xcrun --sdk iphoneos --find clang`
-          export XCODEBUILD="/usr/bin/xcodebuild"
-
-          cd OpenVPNAdapter
-          $XCODEBUILD -scheme OpenVPNAdapter \
-            -configuration Release \
-            -xcconfig Configuration/amnezia.xcconfig \
-            -sdk iphoneos \
+          echo "Building OpenVPNAdapter for iOS..."
+          xcrun xcodebuild \
+            -project OpenVPNAdapter/OpenVPNAdapter.xcodeproj \
+            -xcconfig OpenVPNAdapter/Configuration/amnezia.xcconfig \
+            -scheme OpenVPNAdapter \
             -destination 'generic/platform=iOS' \
-            -project OpenVPNAdapter.xcodeproj \
-            CODE_SIGNING_ALLOWED=NO
-
-      # With CODE_SIGNING_ALLOWED=NO this part is redundant, but it's not just signatures are being deleted here,
-      # It's also dependant frameworks and debug symbols.
-      - name: Remove CodeSignature
-        run: |
-          export WORKINGDIR=`pwd`
-          echo "Removing CodeSignature if exists..."
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework/Versions/A/_CodeSignature
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework/Versions/Current/_CodeSignature
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/LZ4.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNClient.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/mbedTLS.framework
-          rm -rf $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework.dSYM
+            -configuration Release \
+            -sdk iphoneos
 
       - name: Generate Checksums for OpenVPNAdapter.framework
         run: |
           export WORKINGDIR=`pwd`
           if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework" ]; then
             echo "Generating checksums for OpenVPNAdapter.framework..."
-            find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework \
+            find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos \
               -type f \
               -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
           else
@@ -86,38 +133,45 @@ jobs:
 
   github-release:
     name: GitHub Release
-    needs: [build-ios]
+    needs: [build-ios, build-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-
     steps:
-    - name: Setup | Checkout
-      uses: actions/checkout@v4
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup | Download iOS Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: OpenVPNAdapter-ios
-        path: openvpnadapter-ios/
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenVPNAdapter-ios
+          path: openvpnadapter-ios/
 
-    - name: Create Combined Folder
-      run: |
-        mkdir -p openvpnadapter
-        cp -r openvpnadapter-ios/ openvpnadapter/
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenVPNAdapter-macos
+          path: openvpnadapter-macos/
 
-    - name: Zip Combined Artifacts
-      run: |
-        zip -r openvpnadapter.zip openvpnadapter/
-      shell: bash
+      - name: Create Combined Folder
+        run: |
+          mkdir -p openvpnadapter/ios
+          mkdir -p openvpnadapter/macos
+          cp -r openvpnadapter-ios/* openvpnadapter/ios/
+          cp -r openvpnadapter-macos/* openvpnadapter/macos/
 
-    - name: List Generated Files
-      run: ls -l
+      - name: Zip Combined Artifacts
+        run: |
+          zip -r openvpnadapter.zip openvpnadapter/
+        shell: bash
 
-    - name: Upload Binaries to GitHub Release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ github.ref }}
-        overwrite: true
-        file: openvpnadapter.zip
-        file_glob: false
+      - name: List Generated Files
+        run: ls -l
+
+      - name: Upload Binaries to GitHub Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          overwrite: true
+          file: openvpnadapter.zip
+          file_glob: false
