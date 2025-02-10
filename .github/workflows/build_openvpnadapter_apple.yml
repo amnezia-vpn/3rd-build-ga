@@ -23,7 +23,7 @@ jobs:
       - name: Configure amnezia.xcconfig
         run: |
           WORKINGDIR=$(pwd)
-          echo "Configuring amnezia.xcconfig..."
+          echo "Configuring amnezia.xcconfig…"
           cat << EOF > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
           PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
           CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-macos
@@ -41,7 +41,7 @@ jobs:
 
       - name: Build OpenVPNAdapter for macOS
         run: |
-          echo "Building OpenVPNAdapter for macOS..."
+          echo "Building OpenVPNAdapter for macOS…"
           xcrun xcodebuild \
             -project OpenVPNAdapter/OpenVPNAdapter.xcodeproj \
             -xcconfig OpenVPNAdapter/Configuration/amnezia.xcconfig \
@@ -54,7 +54,7 @@ jobs:
         run: |
           export WORKINGDIR=`pwd`
           if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-macos/OpenVPNAdapter.framework" ]; then
-            echo "Generating checksums for OpenVPNAdapter.framework..."
+            echo "Generating checksums for OpenVPNAdapter.framework…"
             find $WORKINGDIR/OpenVPNAdapter/build/Release-macos \
               -type f \
               -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
@@ -90,7 +90,7 @@ jobs:
       - name: Configure amnezia.xcconfig
         run: |
           WORKINGDIR=$(pwd)
-          echo "Configuring amnezia.xcconfig..."
+          echo "Configuring amnezia.xcconfig…"
           cat << EOF > $WORKINGDIR/OpenVPNAdapter/Configuration/amnezia.xcconfig
           PROJECT_TEMP_DIR = $WORKINGDIR/OpenVPNAdapter/build/OpenVPNAdapter.build
           CONFIGURATION_BUILD_DIR = $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos
@@ -103,7 +103,7 @@ jobs:
 
       - name: Build OpenVPNAdapter for iOS
         run: |
-          echo "Building OpenVPNAdapter for iOS..."
+          echo "Building OpenVPNAdapter for iOS…"
           xcrun xcodebuild \
             -project OpenVPNAdapter/OpenVPNAdapter.xcodeproj \
             -xcconfig OpenVPNAdapter/Configuration/amnezia.xcconfig \
@@ -116,7 +116,7 @@ jobs:
         run: |
           export WORKINGDIR=`pwd`
           if [ -d "$WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos/OpenVPNAdapter.framework" ]; then
-            echo "Generating checksums for OpenVPNAdapter.framework..."
+            echo "Generating checksums for OpenVPNAdapter.framework…"
             find $WORKINGDIR/OpenVPNAdapter/build/Release-iphoneos \
               -type f \
               -exec sh -c 'openssl dgst -sha256 -r "$1" > "$1.sha256"' _ {} \;
