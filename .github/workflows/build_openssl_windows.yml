@@ -1,13 +1,12 @@
+---
 name: windows-openssl
-
-
-on: [push]
-
+on:
+  - push
 jobs:
   Build-Libs-OpenSSL-Win:
-    name: 'Build-OpenSSL-Lib-Windows'
+    name: Build-OpenSSL-Lib-Windows
     runs-on: windows-latest
-    if: |
+    if: |+
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[windows]') ||
       contains(github.event.head_commit.message, '[windows-openssl]') ||
@@ -18,16 +17,18 @@ jobs:
         arch:
           - amd64
           - amd64_x86
+        shared:
+          - shared
+          - no-shared
           
     steps:
-      - name: 'Get openssl'
+      - name: Get openssl
         uses: actions/checkout@v3
         with:
           repository: openssl/openssl
-          ref: openssl-3.0.13
+          ref: openssl-3.0.16
           path: openssl
-      
-      - name: Setup msbuild environment    
+      - name: Setup msbuild environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
@@ -38,7 +39,7 @@ jobs:
         with:
           distribution: strawberry
       - name: Build OpenSSL x86
-        if: matrix.arch == 'amd64_x86'
+        if: matrix.arch == 'amd64_x86' && matrix.shared == 'no-shared'
         run: |
           cd openssl
 
@@ -48,8 +49,19 @@ jobs:
           mkdir build/win32
           move libcrypto.lib build/win32
           move libssl.lib build/win32
+      - name: Build Shared OpenSSL x86
+        if: matrix.arch == 'amd64_x86' && matrix.shared == 'shared'
+        run: |
+          cd openssl
+
+          perl Configure no-tests VC-WIN32
+          nmake 
+          mkdir build
+          mkdir build/win32
+          move libcrypto-3.dll build/win32
+          move libssl-3.dll build/win32    
       - name: Build OpenSSL x64
-        if: matrix.arch == 'amd64'
+        if: matrix.arch == 'amd64' && matrix.shared == 'no-shared'
         run: |
           cd openssl
 
@@ -60,41 +72,45 @@ jobs:
           move libcrypto.lib build/win64
           move libssl.lib build/win64
           move include build/include
-      
+      - name: Build Shared OpenSSL x64
+        if: matrix.arch == 'amd64' && matrix.shared == 'shared'
+        run: |
+          cd openssl
+
+          perl Configure no-tests VC-WIN64A
+          nmake
+          mkdir build
+          mkdir build/win64          
+          move libcrypto-3-x64.dll build/win64
+          move libssl-3-x64.dll build/win64    
       - name: Archive Windows OpenSSL libs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           retention-days: 1
-          name: windows-openssl
-          path: openssl/build            
-
-
+          name: windows-openssl-${{ matrix.arch }}-${{ matrix.shared }}
+          path: openssl/build
+          
   github-release:
     name: GitHub Release
     needs: Build-Libs-OpenSSL-Win
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v2
-
       - name: Setup | Artifacts
-        uses: actions/download-artifact@v2
-
+        uses: actions/download-artifact@v4
       - name: Setup | Checksums
-        run: for file in $(find ./ -name '*.lib' -or -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
-
+        run: for file in $(find ./ -name '*.lib' -or -name '*.dll' ); do openssl dgst
+          -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
       - name: Zip ALL
         run: for file in *; do zip -r ${file%.*}.zip  $file; done
-
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: windows-openssl.zip
+          file: "*.zip"
           tag: ${{ github.ref }}
           overwrite: true
-          file_glob: true      
-       
+          file_glob: true
 
