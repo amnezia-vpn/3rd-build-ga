@@ -1,0 +1,65 @@
+name: windows-euphoria
+
+on: [push]
+
+jobs:
+  Build-Libs-Euphoria-Windows:
+    name: 'Build-Libs-Euphoria-Windows'
+    runs-on: windows-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-euphoria]') ||
+      contains(github.event.head_commit.message, '[euphoria]')      
+
+    steps:
+    - name: 'Get AmneziaWG'
+      uses: actions/checkout@v4
+      with:
+        repository: amnezia-vpn/euphoria-windows
+        ref: master
+        path: windows/euphoria-windows
+
+    - name: 'Build WireGuard binary'
+      working-directory: windows/euphoria-windows
+      run: |
+        git submodule update --init --recursive
+        cmd /c build.cmd
+        mkdir build
+        move x64 build\x64
+        move x86 build\x86
+
+    - name: 'Archive artifacts'
+      uses: actions/upload-artifact@v4
+      with:
+        name: euphoria-windows
+        path: windows/euphoria-windows/build
+        retention-days: 1
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-Euphoria-Windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: euphoria-windows.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
