@@ -1,0 +1,83 @@
+name: windows-luajit
+
+on: [push]
+
+jobs:
+  Build-Libs-LuaJIT-Windows:
+    name: 'Build-Libs-LuaJIT-Windows'
+    runs-on: windows-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[windows]') ||
+      contains(github.event.head_commit.message, '[windows-luajit]') ||
+      contains(github.event.head_commit.message, '[luajit]')      
+
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: mingw64, arch: x86_64 },
+          { msystem: mingw32, arch: i686   }
+        ]
+
+    steps:
+    - name: 'Get LuaJIT'
+      uses: actions/checkout@v4
+      with:
+        repository: LuaJIT/LuaJIT
+        ref: v2.1
+        path: LuaJIT
+
+    - name: Install MinGW
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: true
+        install: >-
+          mingw-w64-${{ matrix.arch }}-toolchain
+          base-devel
+          git
+          upx
+
+    - name: 'Build LuaJIT binary'
+      working-directory: LuaJIT/src
+      run: |
+         make
+
+    - name: 'Archive artifacts'
+      uses: actions/upload-artifact@v4
+      with:
+        name: luajit-windows-${{ matrix.arch }}
+        path: LuaJIT/src
+        retention-days: 1
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Libs-LuaJIT-Windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*.a' -or -name '*.dll' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: "*.zip"
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
