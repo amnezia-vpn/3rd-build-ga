@@ -1,0 +1,69 @@
+name: linux-euphoria
+
+on: [push]
+
+jobs:
+
+  Build-Euphoria-Linux:
+    name: 'Euphoria for Linux'
+    runs-on: ubuntu-20.04
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[linux]') ||
+      contains(github.event.head_commit.message, '[linux-euphoria]') ||
+      contains(github.event.head_commit.message, '[euphoria]') 
+
+    steps:
+
+    - name: 'Get Euphoria'
+      uses: actions/checkout@v4
+      with:
+        repository: amnezia-vpn/euphoria
+        ref: master
+        path: euphoria
+
+    - name: Set up build environment
+      uses: awalsh128/cache-apt-pkgs-action@latest 
+      with:
+        packages: gcc-multilib g++-multilib libluajit-5.1-dev 
+        version: 1.0
+
+    - name: 'Run build script'
+      working-directory: euphoria
+      run: |
+        make
+        ./amneziawg-go --version
+
+    - name: 'Archive artifacts'
+      uses: actions/upload-artifact@v4
+      with:
+        name: euphoria-linux
+        path: euphoria/amneziawg-go
+
+  github-release:
+    name: GitHub Release
+    needs: Build-Euphoria-Linux
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Setup | Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup | Artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Setup | Checksums
+      run: for file in $(find ./ -name '*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+    - name: Zip ALL
+      run: for file in *; do zip -r ${file%.*}.zip  $file; done
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: euphoria-linux.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
