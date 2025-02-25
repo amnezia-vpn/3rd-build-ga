@@ -13,7 +13,7 @@ env:
 
 jobs:
   Build-LibSSH-MacOS:
-    runs-on: macos-12
+    runs-on: macos-latest
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[macos]') ||
@@ -21,12 +21,11 @@ jobs:
       contains(github.event.head_commit.message, '[libssh]')    
     strategy:
       matrix:
-        arch: [x86_64]
-        # no-crypto=yes: builds version with all crypto disabled
-        # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
+        arch:
+          - "x86_64"
+          - "arm64"
         no_crypto:
           - no
-        #  - yes
 
     steps:
     - name: Get dependencies
@@ -48,24 +47,24 @@ jobs:
     - name: Build zlib
       run: |
         cd zlib-${{env.ZLIB_VERSION}}
-        cmake .
+        cmake . -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
         make zlibstatic
         cp ./libz.a ${{github.workspace}}/libssh-${{env.LIBSSH_VERSION}}/build/libz.a
 
     - name: Build openssl
       run: |
         cd openssl-${{env.OPENSSL_VERSION}}
-        ./Configure no-asm no-shared darwin64-x86_64-cc
+        ./Configure no-asm no-shared darwin64-${{ matrix.arch }}-cc
         make
 
     - name: Build libssh
       run: |
         cd libssh-${{env.LIBSSH_VERSION}}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
         make ssh
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4
       with:
         name: libssh-macos-${{ matrix.arch }}
         path: ${{ github.workspace }}/libssh-${{env.LIBSSH_VERSION}}/build
@@ -80,10 +79,10 @@ jobs:
 
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup | Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
 
       - name: Setup | Checksums
         run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
