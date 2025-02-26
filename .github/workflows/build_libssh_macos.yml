@@ -3,100 +3,244 @@ name: libssh-macos
 on: [push]
 
 env:
-  # Expected filename: https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
+  # Expected filename: https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
   ZLIB_VERSION: 1.3.1
-  # Expected filename: https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
+  # Expected filename: https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
   OPENSSL_VERSION: 3.0.13
-  # Exoected filename: ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz
+  # Expected filename: ${LIBSSH_SOURCE}libssh-${LIBSSH_VERSION}.tar.xz
   LIBSSH_SOURCE: https://www.libssh.org/files/0.10/
   LIBSSH_VERSION: 0.10.6
 
 jobs:
-  Build-LibSSH-MacOS:
-    runs-on: macos-12
-    if: |
-      contains(github.event.head_commit.message, '[all]') ||
-      contains(github.event.head_commit.message, '[macos]') ||
-      contains(github.event.head_commit.message, '[macos-libssh]') ||
-      contains(github.event.head_commit.message, '[libssh]')    
+  build_arch:
+    runs-on: macos-latest
     strategy:
       matrix:
-        arch: [x86_64]
-        # no-crypto=yes: builds version with all crypto disabled
-        # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
-        no_crypto:
-          - no
-        #  - yes
-
+        arch:
+          - "x86_64"
+          - "arm64"
     steps:
-    - name: Get dependencies
-      run: |
-        # Get and unpack zlibx
-        curl -LOJ https://zlib.net/zlib-${{env.ZLIB_VERSION}}.tar.gz
-        tar -xzf zlib-${{env.ZLIB_VERSION}}.tar.gz
-        
-        # Get and unpack openssl
-        curl -LOJ https://www.openssl.org/source/openssl-${{env.OPENSSL_VERSION}}.tar.gz
-        tar -xzf openssl-${{env.OPENSSL_VERSION}}.tar.gz
-        
-        # Get and unpack libssh
-        curl -LOJ ${{env.LIBSSH_SOURCE}}libssh-${{env.LIBSSH_VERSION}}.tar.xz 
-        tar -xf libssh-${{env.LIBSSH_VERSION}}.tar.xz
-        cd libssh-${{env.LIBSSH_VERSION}}
-        mkdir build
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Build zlib
-      run: |
-        cd zlib-${{env.ZLIB_VERSION}}
-        cmake .
-        make zlibstatic
-        cp ./libz.a ${{github.workspace}}/libssh-${{env.LIBSSH_VERSION}}/build/libz.a
+      - name: Get dependencies
+        run: |
+          curl -LOJ https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+          tar -xzf zlib-${ZLIB_VERSION}.tar.gz
 
-    - name: Build openssl
-      run: |
-        cd openssl-${{env.OPENSSL_VERSION}}
-        ./Configure no-asm no-shared darwin64-x86_64-cc
-        make
+          curl -LOJ https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+          tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
 
-    - name: Build libssh
-      run: |
-        cd libssh-${{env.LIBSSH_VERSION}}/build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=TRUE -DWITH_GSSAPI=OFF -DBUILD_SHARED_LIBS=OFF -DOPENSSL_ROOT_DIR=${{github.workspace}}/openssl-${{env.OPENSSL_VERSION}} -DZLIB_ROOT_DIR=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}} -DZLIB_LIBRARY=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}/libz.a -DZLIB_INCLUDE=${{github.workspace}}/zlib-${{env.ZLIB_VERSION}}
-        make ssh
+          curl -LOJ ${LIBSSH_SOURCE}libssh-${LIBSSH_VERSION}.tar.xz
+          tar -xf libssh-${LIBSSH_VERSION}.tar.xz
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2.2.4
-      with:
-        name: libssh-macos-${{ matrix.arch }}
-        path: ${{ github.workspace }}/libssh-${{env.LIBSSH_VERSION}}/build
-        if-no-files-found: error
-        retention-days: 7
-        
-  github-release:
-    name: GitHub Release
-    needs: Build-LibSSH-MacOS
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+      - name: Build zlib
+        run: |
+          cd zlib-${ZLIB_VERSION}
+          cmake . -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+          make zlibstatic
+          cd ..
 
-    steps:
-      - name: Setup | Checkout
-        uses: actions/checkout@v2
+      - name: Build openssl
+        run: |
+          cd openssl-${OPENSSL_VERSION}
+          ./Configure no-asm no-shared darwin64-${{ matrix.arch }}-cc
+          make -j$(sysctl -n hw.logicalcpu)
+          cd ..
 
-      - name: Setup | Artifacts
-        uses: actions/download-artifact@v2
+      - name: Build libssh
+        run: |
+          cd libssh-${LIBSSH_VERSION}
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release \
+                   -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+                   -DOPENSSL_USE_STATIC_LIBS=TRUE \
+                   -DWITH_GSSAPI=OFF \
+                   -DBUILD_SHARED_LIBS=OFF \
+                   -DOPENSSL_ROOT_DIR=${{ github.workspace }}/openssl-${OPENSSL_VERSION} \
+                   -DZLIB_ROOT_DIR=${{ github.workspace }}/zlib-${ZLIB_VERSION} \
+                   -DZLIB_LIBRARY=${{ github.workspace }}/zlib-${ZLIB_VERSION}/libz.a \
+                   -DZLIB_INCLUDE=${{ github.workspace }}/zlib-${ZLIB_VERSION}
+          make -j$(sysctl -n hw.logicalcpu)
+          cd ../..
+
+      - name: Prepare artifact directories
+        run: |
+          # Create a base directory for the per-arch artifacts
+          mkdir -p artifacts/${{ matrix.arch }}
+
+          # For zlib
+          mkdir -p artifacts/${{ matrix.arch }}/zlib
+          cp zlib-${ZLIB_VERSION}/libz.a artifacts/${{ matrix.arch }}/zlib/
+          cp zlib-${ZLIB_VERSION}/*.h artifacts/${{ matrix.arch }}/zlib/
+
+          ls -l artifacts/${{ matrix.arch }}/zlib
+
+          # For openssl
+          mkdir -p artifacts/${{ matrix.arch }}/openssl
+          cp openssl-${OPENSSL_VERSION}/libcrypto.a artifacts/${{ matrix.arch }}/openssl/ 
+          cp openssl-${OPENSSL_VERSION}/libssl.a artifacts/${{ matrix.arch }}/openssl/ 
+          mkdir -p artifacts/${{ matrix.arch }}/openssl/include
+          cp -R openssl-${OPENSSL_VERSION}/include/* artifacts/${{ matrix.arch }}/openssl/include/
+
+          ls -l artifacts/${{ matrix.arch }}/openssl
+
+          # For libssh
+          mkdir -p artifacts/${{ matrix.arch }}/libssh
+          libssh_static=$(find libssh-${LIBSSH_VERSION}/build -name "libssh.a" | head -n1)
+          if [ -z "$libssh_static" ]; then
+            echo "Error: libssh.a not found!"
+            exit 1
+          else
+            echo "Found libssh static library at $libssh_static"
+            cp "$libssh_static" artifacts/${{ matrix.arch }}/libssh/
+          fi
+          mkdir -p artifacts/${{ matrix.arch }}/libssh/include
+          cp -R libssh-${LIBSSH_VERSION}/include/* artifacts/${{ matrix.arch }}/libssh/include/
+
+          ls -l artifacts/${{ matrix.arch }}/libssh
 
       - name: Setup | Checksums
         run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
-      - name: Zip ALL
-        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+      - name: Zip artifacts for ${{ matrix.arch }}
+        run: |
+          # Move to the artifacts folder for this architecture and create the zip files
+          cd artifacts/${{ matrix.arch }}
+          # The zip archive will contain only the folder (zlib, openssl, or libssh) at its root.
+          zip -q -r ../../zlib-${{ matrix.arch }}.zip zlib
+          zip -q -r ../../openssl-${{ matrix.arch }}.zip openssl
+          zip -q -r ../../libssh-${{ matrix.arch }}.zip libssh
+          cd ../..
 
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+      - name: Upload zlib Artifact for ${{ matrix.arch }}
+        uses: actions/upload-artifact@v4
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: "*.zip"
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true   
-        
+          name: zlib-${{ matrix.arch }}
+          path: zlib-${{ matrix.arch }}.zip
+
+      - name: Upload openssl Artifact for ${{ matrix.arch }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-${{ matrix.arch }}
+          path: openssl-${{ matrix.arch }}.zip
+
+      - name: Upload libssh Artifact for ${{ matrix.arch }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: libssh-${{ matrix.arch }}
+          path: libssh-${{ matrix.arch }}.zip
+
+  build_fat:
+    runs-on: macos-latest
+    needs: build_arch
+    steps:
+      - name: Download zlib-x86_64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zlib-x86_64
+          path: artifacts_x86_64/zlib
+
+      - name: Download openssl-x86_64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openssl-x86_64
+          path: artifacts_x86_64/openssl
+
+      - name: Download libssh-x86_64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: libssh-x86_64
+          path: artifacts_x86_64/libssh
+
+      - name: Download zlib-arm64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zlib-arm64
+          path: artifacts_arm64/zlib
+
+      - name: Download openssl-arm64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openssl-arm64
+          path: artifacts_arm64/openssl
+
+      - name: Download libssh-arm64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: libssh-arm64
+          path: artifacts_arm64/libssh
+
+      - name: Unzip downloaded artifacts
+        run: |
+          mkdir -p unzip/x86_64 unzip/arm64
+          for lib in zlib openssl libssh; do
+            unzip -q artifacts_x86_64/${lib}/${lib}-x86_64.zip -d unzip/x86_64/${lib}
+            unzip -q artifacts_arm64/${lib}/${lib}-arm64.zip -d unzip/arm64/${lib}
+            echo ls -lah unzip/x86_64/${lib}/${lib}
+            ls -lah unzip/x86_64/${lib}/${lib}
+            echo ls -lah unzip/arm64/${lib}/${lib}
+            ls -lah unzip/arm64/${lib}/${lib}
+          done
+
+      - name: Create fat (universal) binaries
+        run: |
+          mkdir -p fat
+          for lib in zlib openssl libssh; do
+            mkdir -p fat/${lib}
+          done
+
+          # zlib: merge libz.a and copy headers inside the fat archive
+          lipo -create unzip/x86_64/zlib/zlib/libz.a unzip/arm64/zlib/zlib/libz.a -output fat/zlib/libz.a
+          cp -R unzip/x86_64/zlib/zlib/*.h fat/zlib/
+
+          # openssl: merge static libs if present, and copy include folder
+          if [ -f unzip/x86_64/openssl/openssl/libcrypto.a ]; then
+            lipo -create unzip/x86_64/openssl/openssl/libcrypto.a unzip/arm64/openssl/openssl/libcrypto.a -output fat/openssl/libcrypto.a
+          fi
+          if [ -f unzip/x86_64/openssl/openssl/libssl.a ]; then
+            lipo -create unzip/x86_64/openssl/openssl/libssl.a unzip/arm64/openssl/openssl/libssl.a -output fat/openssl/libssl.a
+          fi
+          mkdir -p fat/openssl/include
+          cp -R unzip/x86_64/openssl/openssl/include fat/openssl/include
+
+          # libssh: merge the static lib and copy headers
+          lipo -create unzip/x86_64/libssh/libssh/libssh.a unzip/arm64/libssh/libssh/libssh.a -output fat/libssh/libssh.a
+          mkdir -p fat/libssh/include
+          cp -R unzip/x86_64/libssh/libssh/include fat/libssh/include
+
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.a' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Rename libssh_version.h.cmake files
+        run: |
+          find . -type f -name "libssh_version.h.cmake" -print0 | while IFS= read -r -d '' file; do
+            mv "$file" "${file%.cmake}"
+            echo "Renamed $file to ${file%.cmake}"
+          done
+
+      - name: Zip fat artifacts separately
+        run: |
+          cd fat
+          zip -q -r ../zlib-fat.zip zlib
+          zip -q -r ../openssl-fat.zip openssl
+          zip -q -r ../libssh-fat.zip libssh
+          cd ..
+
+      - name: Upload zlib fat Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-fat
+          path: zlib-fat.zip
+
+      - name: Upload openssl fat Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-fat
+          path: openssl-fat.zip
+
+      - name: Upload libssh fat Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libssh-fat
+          path: libssh-fat.zip
