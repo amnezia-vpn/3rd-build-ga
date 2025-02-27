@@ -3,7 +3,6 @@ name: linux-euphoria
 on: [push]
 
 jobs:
-
   Build-Euphoria-Linux:
     name: 'Euphoria for Linux'
     runs-on: ubuntu-20.04
