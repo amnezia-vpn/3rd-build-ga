@@ -3,6 +3,7 @@ name: windows-euphoria
 on: [push]
 
 jobs:
+
   Build-Libs-Euphoria-Windows:
     name: 'Build-Libs-Euphoria-Windows'
     runs-on: windows-latest
