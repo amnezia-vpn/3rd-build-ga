@@ -34,6 +34,7 @@ jobs:
         name: awg-linux
         path: amneziawg-go/amneziawg-go
 
+
   github-release:
     name: GitHub Release
     needs: Build-AWG-Linux
