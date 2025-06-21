@@ -10,14 +10,14 @@ jobs:
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[windows]') ||
       contains(github.event.head_commit.message, '[windows-awg]') ||
-      contains(github.event.head_commit.message, '[awg]')      
+      contains(github.event.head_commit.message, '[awg]')
 
     steps:
     - name: 'Get AmneziaWG'
       uses: actions/checkout@v4
       with:
-        repository: amnezia-vpn/amneziawg-windows
-        ref: master
+        repository: marko1777/amneziawg-windows
+        ref: awg-1.5
         path: windows/wireguard-windows
 
     - name: 'Build WireGuard binary'

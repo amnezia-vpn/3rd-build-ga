@@ -11,15 +11,15 @@ jobs:
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[linux]') ||
       contains(github.event.head_commit.message, '[linux-awg]') ||
-      contains(github.event.head_commit.message, '[awg]') 
+      contains(github.event.head_commit.message, '[awg]')
 
     steps:
 
     - name: 'Get AmneziaWG'
       uses: actions/checkout@v4
       with:
-        repository: amnezia-vpn/amneziawg-go
-        ref: master
+        repository: marko1777/amneziawg-go
+        ref: awg-1.5
         path: amneziawg-go
 
     - name: 'Run build script'
