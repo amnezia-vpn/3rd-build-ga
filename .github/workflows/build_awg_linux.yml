@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amnezia-vpn/amneziawg-go
-        ref: v0.2.13-beta-awg-1.5-fix6
+        ref: v0.2.13
         path: amneziawg-go
 
     - name: 'Run build script'
