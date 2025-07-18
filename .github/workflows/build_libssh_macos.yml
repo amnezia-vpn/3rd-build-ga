@@ -14,6 +14,11 @@ env:
 jobs:
   build_arch:
     runs-on: macos-latest
+    if: |
+      contains(github.event.head_commit.message, '[all]') ||
+      contains(github.event.head_commit.message, '[macos]') ||
+      contains(github.event.head_commit.message, '[macos-libssh]') ||
+      contains(github.event.head_commit.message, '[libssh]')      
     strategy:
       matrix:
         arch:

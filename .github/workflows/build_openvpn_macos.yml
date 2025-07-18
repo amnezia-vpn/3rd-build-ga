@@ -10,7 +10,7 @@ jobs:
       matrix:
         ssllib: [ openssl30 ]
         build: [ normal, asan ]
-        os: [macos-11, macos-12]
+        os: [macos-13]
         arch: [x86_64] #, arm64]
         include:
           - build: asan
@@ -144,7 +144,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [macos-13]
         arch: [x86_64] #, arm64]
 
 
