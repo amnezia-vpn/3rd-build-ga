@@ -18,7 +18,7 @@ jobs:
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[macos]') ||
       contains(github.event.head_commit.message, '[macos-libssh]') ||
-      contains(github.event.head_commit.message, '[libssh]')      
+      contains(github.event.head_commit.message, '[libssh]')   
     strategy:
       matrix:
         arch:
@@ -249,3 +249,28 @@ jobs:
         with:
           name: libssh-fat
           path: libssh-fat.zip
+          
+  github-release:
+    name: GitHub Release
+    needs: [build_arch, build_fat]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v4
+      - name: Setup | Checksums
+        run: for file in $(find ./ -name '*.a' ); do openssl dgst
+          -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+      - name: Zip ALL
+        run: for file in *; do zip -r ${file%.*}.zip  $file; done
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: "*.zip"
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true          
+          
