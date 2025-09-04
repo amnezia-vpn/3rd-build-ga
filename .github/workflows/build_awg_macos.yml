@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amnezia-vpn/amneziawg-go
-        ref: v0.2.13
+        ref: v0.2.15
         path: amneziawg-go
 
     - name: 'Setup Go'
