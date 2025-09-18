@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: OpenVPN/openvpn
-          ref: release/2.5
+          ref: release/2.6
           path: openvpn
 
       - name: Setup MSBuild
