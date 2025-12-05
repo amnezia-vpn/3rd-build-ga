@@ -6,7 +6,34 @@ jobs:
   Build-Tun2Socks:
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goarch: amd64
+            goos: linux
+            name: linux-amd64
+          - os: ubuntu-latest
+            goarch: arm64
+            goos: linux
+            name: linux-arm64
+          - os: ubuntu-latest
+            goarch: amd64
+            goos: windows
+            name: windows-amd64
+          - os: ubuntu-latest
+            goarch: arm64
+            goos: windows
+            name: windows-arm64
+          - os: ubuntu-latest
+            goarch: amd64
+            goos: darwin
+            name: macos-amd64
+          - os: ubuntu-latest
+            goarch: arm64
+            goos: darwin
+            name: macos-arm64
+    runs-on: ${{ matrix.os }}
     if: |
       contains(github.event.head_commit.message, '[all]') ||
       contains(github.event.head_commit.message, '[windows]') ||
@@ -37,43 +64,40 @@ jobs:
           cd tun2socks
           go mod download
       
-      - name: Build Tun2Socks
+      - name: Build Tun2Socks for ${{ matrix.name }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           cd tun2socks
-          make -j releases
-          cd build
-          unzip \*.zip
-          rm *.zip
+          mkdir -p build
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            go build -v -trimpath -ldflags "-s -w -buildid=" -o build/tun2socks-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+          else
+            go build -v -trimpath -ldflags "-s -w -buildid=" -o build/tun2socks-${{ matrix.goos }}-${{ matrix.goarch }}
+          fi
+
+      - name: Setup | Checksums
+        run: |
+          cd tun2socks/build
+          for file in tun2socks-*; do 
+            openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"
+          done
 
       - name: Upload files to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tun2socks
-          path: tun2socks/build
-
-      - name: Setup | Checksums
-        run: for file in $(find ./tun2socks/build -name '*' ); do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
-
-      - name: Create ZIP archive 
-        shell: bash
-        run: |
-          cd tun2socks
-          pushd build || exit 1
-          touch -mt $(date +%Y01010000) *
-          zip -9vr ../tun2socks.zip .
-          popd || exit 1
-          FILE=./tun2socks.zip
-          DGST=$FILE.dgst
-          for METHOD in {"md5","sha1","sha256","sha512"}
-          do
-            openssl dgst -$METHOD $FILE | sed 's/([^)]*)//g' >>$DGST
-          done
+          name: tun2socks-${{ matrix.name }}
+          path: |
+            tun2socks/build/tun2socks-*
+            tun2socks/build/*.sha256
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: tun2socks/tun2socks.zip*
+          file: tun2socks/build/tun2socks-*
           tag: ${{ github.ref }}
           file_glob: true

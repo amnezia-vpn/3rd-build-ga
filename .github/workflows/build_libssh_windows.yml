@@ -21,7 +21,7 @@ jobs:
       contains(github.event.head_commit.message, '[libssh]')    
     strategy:
       matrix:
-        arch: [x86, x86_64]
+        arch: [x86, x86_64, arm64]
         # no-crypto=yes: builds version with all crypto disabled
         # no-crypto=no: builds version with all crypto enabled (where required dependencies are available)
         no_crypto:
@@ -35,13 +35,14 @@ jobs:
       # uses: ilammy/msvc-dev-cmd@d8610e2b41c6d0f0c3b4c46dad8df0fd826c68e1
       uses: ilammy/msvc-dev-cmd@v1.10.0
       with:
-        arch: ${{ matrix.arch }}
+        arch: ${{ matrix.arch == 'arm64' && 'amd64_arm64' || matrix.arch }}
         toolset: ${{ matrix.toolset }}
         #sdk:   # use the latest
         #spectre: # set true to use VC libraries with sepctre mitigations
 
     - uses: ilammy/setup-nasm@v1.2.1
       name: Install NASM
+      if: matrix.arch != 'arm64'
     - uses: shogo82148/actions-setup-perl@v1
       name: Install PERL
       with:
@@ -87,12 +88,19 @@ jobs:
         
       shell: powershell
 
-    - name: Build zlib
+    - name: Build zlib x86/x64
+      if: matrix.arch != 'arm64'
       shell: cmd
       run: |
         cd zlib\${{env.ZLIB_VERSION}}
-        cmake .
         nmake -f win32\Makefile.msc
+
+    - name: Build zlib ARM64
+      if: matrix.arch == 'arm64'
+      shell: cmd
+      run: |
+        cd zlib\${{env.ZLIB_VERSION}}
+        nmake -f win32\Makefile.msc zlib.lib
 
     - name: Build openssl x86
       if: matrix.arch == 'x86'
@@ -114,6 +122,14 @@ jobs:
         perl Configure VC-WIN64A no-tests no-shared --with-zlib-include=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}     
         nmake
 
+    - name: Build openssl ARM64
+      if: matrix.arch == 'arm64'
+      shell: powershell
+      run: |
+        cd openssl\${{env.OPENSSL_VERSION}}
+        perl Configure VC-WIN64-ARM no-tests no-shared no-asm --with-zlib-include=${{github.workspace}}\zlib\${{env.ZLIB_VERSION}}     
+        nmake
+
     - name: Build libssh
       shell: powershell
       run: |
@@ -122,7 +138,7 @@ jobs:
         nmake ssh
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4
       with:
         name: libssh-win-${{ matrix.arch }}
         path: ${{ github.workspace }}\libssh\${{env.LIBSSH_VERSION}}\build

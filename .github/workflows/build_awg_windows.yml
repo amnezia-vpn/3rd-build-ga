@@ -27,6 +27,7 @@ jobs:
         mkdir build
         move x64 build\x64
         move x86 build\x86
+        move arm64 build\arm64
 
     - name: 'Archive artifacts'
       uses: actions/upload-artifact@v4

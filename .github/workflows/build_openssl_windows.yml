@@ -17,6 +17,7 @@ jobs:
         arch:
           - amd64
           - amd64_x86
+          - amd64_arm64
         shared:
           - shared
           - no-shared
@@ -83,6 +84,29 @@ jobs:
           mkdir build/win64          
           move libcrypto-3-x64.dll build/win64
           move libssl-3-x64.dll build/win64    
+      - name: Build OpenSSL ARM64
+        if: matrix.arch == 'amd64_arm64' && matrix.shared == 'no-shared'
+        run: |
+          cd openssl
+
+          perl Configure no-tests no-shared VC-WIN64-ARM
+          nmake
+          mkdir build
+          mkdir build/arm64
+          move libcrypto.lib build/arm64
+          move libssl.lib build/arm64
+          move include build/include
+      - name: Build Shared OpenSSL ARM64
+        if: matrix.arch == 'amd64_arm64' && matrix.shared == 'shared'
+        run: |
+          cd openssl
+
+          perl Configure no-tests VC-WIN64-ARM
+          nmake
+          mkdir build
+          mkdir build/arm64
+          move libcrypto-3-arm64.dll build/arm64
+          move libssl-3-arm64.dll build/arm64    
       - name: Archive Windows OpenSSL libs
         uses: actions/upload-artifact@v4
         with:
