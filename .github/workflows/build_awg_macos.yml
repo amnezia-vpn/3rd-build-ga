@@ -31,7 +31,7 @@ jobs:
     - name: 'Run build script'
       working-directory: amneziawg-go
       run: |
-        make
+        GOARCH=amd64 make
         ./amneziawg-go --version
 
     - name: 'Archive artifacts'
