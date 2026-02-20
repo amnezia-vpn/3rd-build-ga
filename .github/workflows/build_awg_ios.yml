@@ -36,7 +36,7 @@ jobs:
 
     - name: 'Build WG'
       working-directory: awg-apple/Sources/WireGuardKitGo
-      run: ARCHS=${{ matrix.arch }} PLATFORM_NAME=iphoneos make
+      run: ARCHS=${{ matrix.arch }} PLATFORM_NAME=iphoneos sudo make
 
     - name: 'Archive artifacts'
       uses: actions/upload-artifact@v4

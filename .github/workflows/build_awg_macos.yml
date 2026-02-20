@@ -65,7 +65,7 @@ jobs:
 
       - name: 'Run build script'
         working-directory: amneziawg-apple/Sources/WireGuardKitGo
-        run: make
+        run: sudo make
 
       - name: 'Verify fat binary for libwg-go.a'
         working-directory: amneziawg-apple/Sources/WireGuardKitGo/out
