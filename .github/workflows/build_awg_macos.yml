@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: amnezia-vpn/amneziawg-apple
-          ref: v2.0.0
+          ref: v2.0.1
           path: amneziawg-apple
 
       - name: 'Setup/Update Go'
@@ -65,7 +65,7 @@ jobs:
 
       - name: 'Run build script'
         working-directory: amneziawg-apple/Sources/WireGuardKitGo
-        run: make
+        run: sudo make
 
       - name: 'Verify fat binary for libwg-go.a'
         working-directory: amneziawg-apple/Sources/WireGuardKitGo/out
