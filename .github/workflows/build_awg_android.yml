@@ -37,7 +37,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amnezia-vpn/amneziawg-android
-        ref: v1.1.6
+        ref: v1.1.7
         path: android/amneziawg-android
         submodules: true
 
